@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"path/filepath"
 	"runtime"
 	"sync"
 	"sync/atomic"
@@ -23,7 +24,7 @@ func SocketPath() string {
 		if user == "" {
 			user = "default"
 		}
-		return `\\.\pipe\tabwrangler-` + user
+		return filepath.Join(os.TempDir(), fmt.Sprintf("tabwrangler-%s.sock", user))
 	}
 	uid := os.Getuid()
 	return fmt.Sprintf("/tmp/tabwrangler-%d.sock", uid)
