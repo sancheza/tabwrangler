@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1e1e2e"/>
+      <stop offset="100%" stop-color="#11111b"/>
+    </linearGradient>
+    <linearGradient id="rope" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fde047"/>
+      <stop offset="35%" stop-color="#f59e0b"/>
+      <stop offset="80%" stop-color="#d97706"/>
+      <stop offset="100%" stop-color="#92400e"/>
+    </linearGradient>
+    <linearGradient id="rope-tail" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#d97706"/>
+      <stop offset="50%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#b45309"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="1" dy="2" stdDeviation="1.5" flood-color="#000000" flood-opacity="0.5"/>
+    </filter>
+  </defs>
+
+  <!-- Container Squircle Background -->
+  <rect x="6" y="6" width="116" height="116" rx="26" fill="url(#bg)" stroke="#313244" stroke-width="2.5"/>
+  <rect x="9" y="9" width="110" height="110" rx="23" fill="none" stroke="#45475a" stroke-width="1" opacity="0.4"/>
+
+  <!-- Whipping Tail / Running Lead Rope (underneath main loop) -->
+  <path d="M 46 76 C 36 94 62 108 86 104 C 104 100 110 82 96 74 C 88 70 78 76 82 84"
+        fill="none"
+        stroke="url(#rope-tail)"
+        stroke-width="7"
+        stroke-linecap="round"
+        filter="url(#shadow)"/>
+  <path d="M 46 76 C 36 94 62 108 86 104 C 104 100 110 82 96 74 C 88 70 78 76 82 84"
+        fill="none"
+        stroke="#fde047"
+        stroke-width="2.5"
+        stroke-linecap="round"
+        stroke-dasharray="3 3.5"
+        opacity="0.8"/>
+
+  <!-- Main Tilted Flying Lasso Oval Loop -->
+  <ellipse cx="66" cy="52" rx="40" ry="26"
+           transform="rotate(-18 66 52)"
+           fill="none"
+           stroke="url(#rope)"
+           stroke-width="7.5"
+           filter="url(#shadow)"/>
+
+  <!-- Braided Rope Dash Highlights -->
+  <ellipse cx="66" cy="52" rx="40" ry="26"
+           transform="rotate(-18 66 52)"
+           fill="none"
+           stroke="#fde047"
+           stroke-width="2.5"
+           stroke-linecap="round"
+           stroke-dasharray="4 4"
+           opacity="0.85"/>
+
+  <!-- Knot / Hondo Eyelet Ring -->
+  <circle cx="46" cy="74" r="8" fill="#b45309" stroke="#f59e0b" stroke-width="2" filter="url(#shadow)"/>
+  <circle cx="46" cy="74" r="7.5" fill="none" stroke="#fde047" stroke-width="1" stroke-dasharray="2 2" opacity="0.9"/>
+  <circle cx="46" cy="74" r="3.2" fill="#181825" stroke="#78350f" stroke-width="1"/>
+</svg>
