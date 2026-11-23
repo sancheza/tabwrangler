@@ -369,7 +369,7 @@ func (m Model) renderDiagnosticsModal() string {
 
 	items = append(items, "")
 	items = append(items, lipgloss.NewStyle().Bold(true).Render("To enable interactive tab actions (Focus / Discard / Close):"))
-	items = append(items, "  • Firefox: Open about:debugging#/runtime/this-firefox -> click 'Load Temporary Add-on' -> select extension/manifest.json")
+	items = append(items, "  • Firefox: Open about:debugging -> click 'This Firefox' -> 'Load Temporary Add-on' -> select extension/manifest.json")
 	items = append(items, "  • Chrome:  Open chrome://extensions -> enable 'Developer mode' -> 'Load unpacked' -> select extension/")
 	items = append(items, "  • Safari:  Automated natively via macOS AppleScript (Focus and Close work out-of-the-box)")
 	items = append(items, "")

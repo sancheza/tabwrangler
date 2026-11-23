@@ -79,7 +79,7 @@ func Run(binaryPath string, openBrowser bool) error {
 
 		if openBrowser {
 			fmt.Printf("[INFO] Opening Firefox add-on debugging page...\n")
-			_ = exec.Command("open", "-a", "Firefox", "about:debugging#/runtime/this-firefox").Run()
+			_ = exec.Command("open", "-a", "Firefox", "about:debugging").Run()
 		}
 	} else if runtime.GOOS == "windows" {
 		appData := os.Getenv("APPDATA")

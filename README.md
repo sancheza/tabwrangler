@@ -50,7 +50,7 @@ Expected output:
 ### 3.3 Install Companion Extension
 
 1. In Chrome, navigate to `chrome://extensions`, enable **Developer mode**, click **Load unpacked**, and select the `extension/` directory.
-2. In Firefox, navigate to `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on**, and select `extension/manifest.json`.
+2. In Firefox, navigate to `about:debugging`, click **This Firefox**, click **Load Temporary Add-on**, and select `extension/manifest.json`.
 
 ## 4. Usage
 
