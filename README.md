@@ -34,22 +34,29 @@ go build -o tabwrangler ./cmd/tabwrangler
 
 ### 3.2 Register Browser Bridges
 
-Run the setup command to register the Native Messaging host manifests for Chrome and Firefox, and verify macOS automation permissions:
+Run the setup command to register Native Messaging host manifests for Chrome, Edge, and Firefox (and on Windows, write the required registry keys under `HKCU\Software`):
 
+On macOS / Linux:
 ```bash
 ./tabwrangler setup
 ```
 
+On Windows (Command Prompt or PowerShell):
+```cmd
+tabwrangler.exe setup
+```
+
 Expected output:
 ```text
-[OK] Chrome native messaging host manifest installed: ~/Library/Application Support/Google/Chrome/NativeMessagingHosts/com.tabwrangler.bridge.json
-[OK] Firefox native messaging host manifest installed: ~/Library/Application Support/Mozilla/NativeMessagingHosts/com.tabwrangler.bridge.json
-[OK] Safari AppleScript automation permissions verified
+[OK] Chrome native messaging manifest installed: ...
+[OK] Firefox native messaging manifest installed: ...
+[OK] Registered Google\Chrome in Windows Registry: HKCU\Software\Google\Chrome\NativeMessagingHosts\com.tabwrangler.bridge
+[OK] Copied extension directory to Windows clipboard
 ```
 
 ### 3.3 Install Companion Extension
 
-1. In Chrome, navigate to `chrome://extensions`, enable **Developer mode**, click **Load unpacked**, and select the `extension/` directory.
+1. In Chrome (or Edge), navigate to `chrome://extensions`, enable **Developer mode**, click **Load unpacked**, and select the `extension/` directory (already copied to your clipboard during setup).
 2. In Firefox, navigate to `about:debugging`, click **This Firefox**, click **Load Temporary Add-on**, and select `extension/manifest.json`.
 
 ## 4. Usage

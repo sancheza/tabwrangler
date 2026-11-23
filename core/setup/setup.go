@@ -12,7 +12,10 @@ import (
 	"strings"
 )
 
-const HostName = "com.tabwrangler.bridge"
+const (
+	HostName                 = "com.tabwrangler.bridge"
+	DefaultChromeExtensionID = "ambpjofjffekeccmjjeaadoeieemmlhc"
+)
 
 type chromeManifest struct {
 	Name           string   `json:"name"`
@@ -31,7 +34,7 @@ type firefoxManifest struct {
 }
 
 // Run executes the setup process, creating manifest files and verifying permissions.
-func Run(binaryPath string, openBrowser bool) error {
+func Run(binaryPath string, openBrowser bool, customChromeID string) error {
 	if binaryPath == "" {
 		var err error
 		binaryPath, err = os.Executable()
@@ -40,6 +43,9 @@ func Run(binaryPath string, openBrowser bool) error {
 		}
 	}
 	binaryPath, _ = filepath.Abs(binaryPath)
+	if runtime.GOOS == "windows" && filepath.Ext(binaryPath) == "" {
+		binaryPath += ".exe"
+	}
 
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
@@ -53,7 +59,7 @@ func Run(binaryPath string, openBrowser bool) error {
 		chromeDir := filepath.Join(homeDir, "Library", "Application Support", "Google", "Chrome", "NativeMessagingHosts")
 		firefoxDir := filepath.Join(homeDir, "Library", "Application Support", "Mozilla", "NativeMessagingHosts")
 
-		if err := writeManifests(chromeDir, firefoxDir, binaryPath); err != nil {
+		if _, _, err := writeManifests(chromeDir, firefoxDir, binaryPath, customChromeID); err != nil {
 			return err
 		}
 
@@ -94,20 +100,51 @@ func Run(binaryPath string, openBrowser bool) error {
 			_ = exec.Command("open", "-a", "Firefox", "about:debugging").Run()
 		}
 	} else if runtime.GOOS == "windows" {
-		appData := os.Getenv("APPDATA")
 		localAppData := os.Getenv("LOCALAPPDATA")
-		chromeDir := filepath.Join(localAppData, "Google", "Chrome", "User Data", "NativeMessagingHosts")
+		appData := os.Getenv("APPDATA")
+		if localAppData == "" {
+			localAppData = filepath.Join(homeDir, "AppData", "Local")
+		}
+		if appData == "" {
+			appData = filepath.Join(homeDir, "AppData", "Roaming")
+		}
+
+		chromeDir := filepath.Join(localAppData, "TabWrangler", "NativeMessagingHosts")
 		firefoxDir := filepath.Join(appData, "Mozilla", "NativeMessagingHosts")
 
-		if err := writeManifests(chromeDir, firefoxDir, binaryPath); err != nil {
+		chromePath, firefoxPath, err := writeManifests(chromeDir, firefoxDir, binaryPath, customChromeID)
+		if err != nil {
 			return err
+		}
+
+		// Register in Windows Registry under HKCU
+		fmt.Printf("[INFO] Registering Native Messaging hosts in Windows Registry...\n")
+		registerWindowsRegistry(`Google\Chrome`, chromePath)
+		registerWindowsRegistry(`Microsoft\Edge`, chromePath)
+		registerWindowsRegistry(`Mozilla`, firefoxPath)
+
+		// Copy extension directory to Windows clipboard if clip is available
+		candidatePaths := []string{
+			filepath.Join(filepath.Dir(binaryPath), "extension"),
+			"extension",
+		}
+		for _, cand := range candidatePaths {
+			abs, _ := filepath.Abs(cand)
+			if fi, err := os.Stat(abs); err == nil && fi.IsDir() {
+				clip := exec.Command("clip")
+				clip.Stdin = strings.NewReader(abs)
+				if clip.Run() == nil {
+					fmt.Printf("\033[32m[OK]\033[0m Copied extension directory to Windows clipboard: %s\n", abs)
+				}
+				break
+			}
 		}
 	} else {
 		// Linux
 		chromeDir := filepath.Join(homeDir, ".config", "google-chrome", "NativeMessagingHosts")
 		firefoxDir := filepath.Join(homeDir, ".mozilla", "native-messaging-hosts")
 
-		if err := writeManifests(chromeDir, firefoxDir, binaryPath); err != nil {
+		if _, _, err := writeManifests(chromeDir, firefoxDir, binaryPath, customChromeID); err != nil {
 			return err
 		}
 	}
@@ -116,28 +153,33 @@ func Run(binaryPath string, openBrowser bool) error {
 	return nil
 }
 
-func writeManifests(chromeDir, firefoxDir, binaryPath string) error {
+func writeManifests(chromeDir, firefoxDir, binaryPath, customChromeID string) (string, string, error) {
 	if err := os.MkdirAll(chromeDir, 0755); err != nil {
-		return fmt.Errorf("failed creating Chrome NativeMessagingHosts dir: %w", err)
+		return "", "", fmt.Errorf("failed creating Chrome NativeMessagingHosts dir: %w", err)
 	}
 	if err := os.MkdirAll(firefoxDir, 0755); err != nil {
-		return fmt.Errorf("failed creating Firefox NativeMessagingHosts dir: %w", err)
+		return "", "", fmt.Errorf("failed creating Firefox NativeMessagingHosts dir: %w", err)
+	}
+
+	allowedOrigins := []string{
+		"chrome-extension://" + DefaultChromeExtensionID + "/",
+	}
+	if customChromeID != "" && customChromeID != DefaultChromeExtensionID {
+		allowedOrigins = append(allowedOrigins, "chrome-extension://"+customChromeID+"/")
 	}
 
 	chromeMF := chromeManifest{
-		Name:        HostName,
-		Description: "TabWrangler Native Messaging Host Bridge",
-		Path:        binaryPath,
-		Type:        "stdio",
-		AllowedOrigins: []string{
-			"chrome-extension://*/",
-		},
+		Name:           HostName,
+		Description:    "TabWrangler Native Messaging Host Bridge",
+		Path:           binaryPath,
+		Type:           "stdio",
+		AllowedOrigins: allowedOrigins,
 	}
 
 	chromePath := filepath.Join(chromeDir, HostName+".json")
 	cBytes, _ := json.MarshalIndent(chromeMF, "", "  ")
 	if err := os.WriteFile(chromePath, cBytes, 0644); err != nil {
-		return fmt.Errorf("failed writing Chrome manifest to %s: %w", chromePath, err)
+		return "", "", fmt.Errorf("failed writing Chrome manifest to %s: %w", chromePath, err)
 	}
 	fmt.Printf("\033[32m[OK]\033[0m Chrome native messaging manifest installed: %s\n", chromePath)
 
@@ -154,9 +196,19 @@ func writeManifests(chromeDir, firefoxDir, binaryPath string) error {
 	firefoxPath := filepath.Join(firefoxDir, HostName+".json")
 	fBytes, _ := json.MarshalIndent(ffMF, "", "  ")
 	if err := os.WriteFile(firefoxPath, fBytes, 0644); err != nil {
-		return fmt.Errorf("failed writing Firefox manifest to %s: %w", firefoxPath, err)
+		return "", "", fmt.Errorf("failed writing Firefox manifest to %s: %w", firefoxPath, err)
 	}
 	fmt.Printf("\033[32m[OK]\033[0m Firefox native messaging manifest installed: %s\n", firefoxPath)
 
-	return nil
+	return chromePath, firefoxPath, nil
+}
+
+func registerWindowsRegistry(browserKey, manifestPath string) {
+	cmd := exec.Command("reg", "add", `HKCU\Software\`+browserKey+`\NativeMessagingHosts\`+HostName, "/ve", "/t", "REG_SZ", "/d", manifestPath, "/f")
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		fmt.Printf("\033[38;5;214m[WARNING]\033[0m Failed adding %s registry key: %v (%s)\n", browserKey, err, strings.TrimSpace(string(out)))
+	} else {
+		fmt.Printf("\033[32m[OK]\033[0m Registered %s in Windows Registry: HKCU\\Software\\%s\\NativeMessagingHosts\\%s\n", browserKey, browserKey, HostName)
+	}
 }

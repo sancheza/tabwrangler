@@ -50,7 +50,7 @@ func printUsage() {
 	// Usage
 	b.WriteString(cBoldCyan + "USAGE:\n" + cReset)
 	b.WriteString("  " + cGreen + "tabwrangler" + cReset + " [flags]\n")
-	b.WriteString("  " + cGreen + "tabwrangler setup" + cReset + " [" + cCyan + "--open" + cReset + "]\n")
+	b.WriteString("  " + cGreen + "tabwrangler setup" + cReset + " [" + cCyan + "--open" + cReset + "] [" + cCyan + "--chrome-id" + cReset + " <id>]\n")
 	b.WriteString("  " + cGreen + "tabwrangler bridge" + cReset + "\n\n")
 
 	// Description
@@ -64,6 +64,7 @@ func printUsage() {
 	b.WriteString(cBoldCyan + "COMMANDS:\n" + cReset)
 	b.WriteString("  " + cGreen + "setup" + cReset + "             Install Native Messaging manifests and configure host permissions\n")
 	b.WriteString("                    Options: " + cCyan + "--open" + cReset + ", " + cCyan + "-o" + cReset + " (opens browser add-on debugging page directly)\n")
+	b.WriteString("                             " + cCyan + "--chrome-id" + cReset + " <id> (specifies custom unpacked Chrome extension ID)\n")
 	b.WriteString("  " + cGreen + "bridge" + cReset + "            Run stdio Native Messaging host bridge (invoked automatically by browsers)\n\n")
 
 	// Flags
@@ -159,12 +160,20 @@ func main() {
 		switch subcommand {
 		case "setup":
 			openBrowser := false
-			for _, arg := range os.Args[2:] {
+			chromeID := ""
+			args := os.Args[2:]
+			for i := 0; i < len(args); i++ {
+				arg := args[i]
 				if arg == "--open" || arg == "-o" {
 					openBrowser = true
+				} else if (arg == "--chrome-id" || arg == "-c") && i+1 < len(args) {
+					chromeID = args[i+1]
+					i++
+				} else if strings.HasPrefix(arg, "--chrome-id=") {
+					chromeID = strings.TrimPrefix(arg, "--chrome-id=")
 				}
 			}
-			if err := setup.Run("", openBrowser); err != nil {
+			if err := setup.Run("", openBrowser, chromeID); err != nil {
 				fmt.Fprintf(os.Stderr, "Error during setup: %v\n", err)
 				os.Exit(1)
 			}

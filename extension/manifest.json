@@ -26,9 +26,9 @@
     "default_title": "TabWrangler Companion"
   },
   "background": {
-    "service_worker": "background.js",
-    "scripts": ["background.js"]
+    "service_worker": "background.js"
   },
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0KIHtHzBcJYEiUjAaUIRCvYGQiSHIdXAMTIASAg0gLbj024iF5kaNXsJeAHuxkPyo5XFSWdQcsvk8P/4nZJBwe9yLnE4DpJX5f772HkHXw+R0HTZIwPDBRI5RHMAc6UH8sKzg2fyoJC1pS736jHMgP7cg77faRprTvcfYtBSL+i2opqHrZaCiaZddi7W7spoipnbDOp5HXfRvGnTDG18er6/rFp+k3vuf2w/9+bTKTb/VKYRM3C1C4tdwcPYtamu85Zz7vBO0bn1t5gHOoQKcW+ycgRkS3exKhfUKW+hnXR7pd13WU65NuAiTZsXDxXj/fm5oxLpXJaIM9/RmInoRwIDAQAB",
   "browser_specific_settings": {
     "gecko": {
       "id": "companion@tabwrangler.local",
