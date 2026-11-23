@@ -4,6 +4,8 @@
 *.exe
 *.o
 *.a
+bin/
+dist/
 
 # OS metadata
 .DS_Store
