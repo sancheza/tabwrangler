@@ -32,6 +32,7 @@ func SocketPath() string {
 // Server handles incoming bridge connections from browser native messaging processes.
 type Server struct {
 	mu          sync.RWMutex
+	sockPath    string
 	listener    net.Listener
 	connections map[types.BrowserType]net.Conn
 	reqCounter  uint64
@@ -42,7 +43,13 @@ type Server struct {
 
 // NewServer initializes a new IPC bridge server.
 func NewServer() *Server {
+	return NewServerWithPath(SocketPath())
+}
+
+// NewServerWithPath initializes an IPC bridge server with a custom socket path (useful for testing).
+func NewServerWithPath(sockPath string) *Server {
 	return &Server{
+		sockPath:    sockPath,
 		connections: make(map[types.BrowserType]net.Conn),
 		pending:     make(map[string]chan *Response),
 	}
@@ -50,7 +57,11 @@ func NewServer() *Server {
 
 // Start begins listening on the local IPC socket.
 func (s *Server) Start(ctx context.Context) error {
-	sockPath := SocketPath()
+	sockPath := s.sockPath
+	if sockPath == "" {
+		sockPath = SocketPath()
+		s.sockPath = sockPath
+	}
 
 	if runtime.GOOS != "windows" {
 		// Clean up existing socket file if present
@@ -98,7 +109,7 @@ func (s *Server) Close() {
 	s.mu.Unlock()
 
 	if runtime.GOOS != "windows" {
-		_ = os.Remove(SocketPath())
+		_ = os.Remove(s.sockPath)
 	}
 }
 

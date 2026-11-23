@@ -124,6 +124,7 @@ func (a *ExtensionAdapter) FocusTab(ctx context.Context, tab types.Tab) error {
 		Action:   ActionFocusTab,
 		TabID:    tabID,
 		WindowID: winID,
+		URL:      tab.URL,
 	})
 	if err != nil {
 		return err

@@ -6,6 +6,9 @@ let nativePort = null;
 let reconnectTimer = null;
 
 function detectBrowser() {
+  if (typeof navigator !== "undefined" && navigator.userAgent && navigator.userAgent.toLowerCase().includes("firefox")) {
+    return "firefox";
+  }
   if (typeof browser !== "undefined" && browser.runtime && browser.runtime.getBrowserInfo) {
     return "firefox";
   }
@@ -14,8 +17,7 @@ function detectBrowser() {
 
 function connectNative() {
   if (nativePort) {
-    try { nativePort.disconnect(); } catch (e) {}
-    nativePort = null;
+    return;
   }
 
   try {
@@ -28,9 +30,8 @@ function connectNative() {
 
     nativePort.onDisconnect.addListener(() => {
       nativePort = null;
-      // Exponential retry
       clearTimeout(reconnectTimer);
-      reconnectTimer = setTimeout(connectNative, 5000);
+      reconnectTimer = setTimeout(connectNative, 2000);
     });
 
     // Send initial registration handshake
@@ -40,7 +41,7 @@ function connectNative() {
     });
   } catch (err) {
     clearTimeout(reconnectTimer);
-    reconnectTimer = setTimeout(connectNative, 5000);
+    reconnectTimer = setTimeout(connectNative, 2000);
   }
 }
 
@@ -77,11 +78,29 @@ async function handleRequest(req) {
       }
 
       case "focus_tab": {
+        let focused = false;
         if (req.tab_id) {
-          await api.tabs.update(req.tab_id, { active: true });
+          try {
+            await api.tabs.update(req.tab_id, { active: true });
+            focused = true;
+          } catch (e) {}
+        }
+        if (!focused && req.url) {
+          try {
+            const matches = await api.tabs.query({ url: req.url });
+            if (matches && matches.length > 0) {
+              await api.tabs.update(matches[0].id, { active: true });
+              if (matches[0].windowId) {
+                await api.windows.update(matches[0].windowId, { focused: true });
+              }
+              focused = true;
+            }
+          } catch (e) {}
         }
         if (req.window_id) {
-          await api.windows.update(req.window_id, { focused: true });
+          try {
+            await api.windows.update(req.window_id, { focused: true });
+          } catch (e) {}
         }
         sendResponse({
           id: req.id,
@@ -174,3 +193,13 @@ function sendResponse(resp) {
 
 // Connect immediately on startup
 connectNative();
+
+// Reconnect whenever user switches or updates tabs if disconnected
+try {
+  const tabsAPI = (typeof browser !== "undefined" && browser.tabs) ? browser.tabs : (typeof chrome !== "undefined" ? chrome.tabs : null);
+  if (tabsAPI && tabsAPI.onActivated) {
+    tabsAPI.onActivated.addListener(() => {
+      if (!nativePort) connectNative();
+    });
+  }
+} catch (e) {}

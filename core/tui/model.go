@@ -119,10 +119,20 @@ func NewModel(c *collector.Collector, initialBrowser types.BrowserType, dryRun b
 	}
 }
 
+// TickMsg is emitted periodically to refresh tabs and process stats.
+type TickMsg time.Time
+
+func doTick() tea.Cmd {
+	return tea.Tick(5*time.Second, func(t time.Time) tea.Msg {
+		return TickMsg(t)
+	})
+}
+
 // Init triggers initial on-demand tab snapshot.
 func (m Model) Init() tea.Cmd {
 	return tea.Batch(
 		m.triggerRefresh(),
+		doTick(),
 	)
 }
 

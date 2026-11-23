@@ -72,6 +72,15 @@ func main() {
 	fs.BoolVar(&mockFlag, "mock", false, "Run with mock provider")
 	fs.BoolVar(&dryRunFlag, "dry-run", false, "Report mutations without modifying state")
 
+	// Detect native messaging bridge invocation spawned by browser
+	if bridge.IsNativeMessagingInvocation(os.Args) {
+		if err := bridge.RunNativeMessagingBridge(); err != nil {
+			fmt.Fprintf(os.Stderr, "Bridge error: %v\n", err)
+			os.Exit(1)
+		}
+		os.Exit(0)
+	}
+
 	if len(os.Args) > 1 {
 		subcommand := os.Args[1]
 		switch subcommand {
@@ -84,12 +93,6 @@ func main() {
 			}
 			if err := setup.Run("", openBrowser); err != nil {
 				fmt.Fprintf(os.Stderr, "Error during setup: %v\n", err)
-				os.Exit(1)
-			}
-			os.Exit(0)
-		case "bridge":
-			if err := bridge.RunNativeMessagingBridge(); err != nil {
-				fmt.Fprintf(os.Stderr, "Bridge error: %v\n", err)
 				os.Exit(1)
 			}
 			os.Exit(0)

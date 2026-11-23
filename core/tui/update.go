@@ -43,6 +43,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.toast = ""
 		return m, nil
 
+	case TickMsg:
+		return m, tea.Batch(m.triggerRefresh(), doTick())
+
 	case tea.KeyPressMsg:
 		return m.handleKeyPress(msg)
 	}
