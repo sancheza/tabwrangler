@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/sancheza/tabwrangler/core/browser"
 	"github.com/sancheza/tabwrangler/core/browser/firefox"
 	"github.com/sancheza/tabwrangler/core/types"
 )
@@ -132,6 +133,9 @@ func (a *ExtensionAdapter) FocusTab(ctx context.Context, tab types.Tab) error {
 	if !resp.Success {
 		return fmt.Errorf("focus failed: %s", resp.Error)
 	}
+
+	// Raise the browser application to the very front of the window stack on the host OS
+	browser.ActivateBrowserApplication(a.browser)
 	return nil
 }
 
