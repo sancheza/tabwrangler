@@ -28,6 +28,9 @@ func TestLiveCollectorFetch(t *testing.T) {
 
 	tabs, errs := coll.FetchAll(ctx, 3*time.Second)
 	t.Logf("FetchAll completed: %d tabs, errs: %v", len(tabs), errs)
+	if len(tabs) == 0 {
+		t.Skip("No live open browser tabs detected on system; skipping live integration test")
+	}
 
 	procColl := telemetry.NewOSCollector()
 	var stats map[types.BrowserType]telemetry.BrowserProcessStats
