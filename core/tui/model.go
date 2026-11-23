@@ -11,6 +11,7 @@ import (
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
 	"github.com/sancheza/tabwrangler/core/collector"
+	"github.com/sancheza/tabwrangler/core/telemetry"
 	"github.com/sancheza/tabwrangler/core/types"
 )
 
@@ -129,6 +130,13 @@ func (m *Model) triggerRefresh() tea.Cmd {
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 		defer cancel()
 		tabs, errs := m.collector.FetchAll(ctx, 3*time.Second)
+
+		// Enrich tabs with live process telemetry
+		procCollector := telemetry.NewOSCollector()
+		if procs, err := procCollector.CollectBrowserProcesses(); err == nil && len(procs) > 0 {
+			tabs = telemetry.EnrichTabsWithMetrics(tabs, procs)
+		}
+
 		return RefreshDoneMsg{
 			Tabs:   tabs,
 			Errors: errs,

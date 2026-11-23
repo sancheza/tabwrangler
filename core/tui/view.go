@@ -75,7 +75,7 @@ func (m Model) renderTopBar() string {
 		var item string
 
 		if cfg.bType != types.BrowserAll {
-			if _, hasErr := m.browserErrors[cfg.bType]; hasErr {
+			if _, hasErr := m.browserErrors[cfg.bType]; hasErr && count == 0 {
 				item = fmt.Sprintf("[%s] %s (bridge disconnected)", cfg.key, cfg.label)
 			} else {
 				item = fmt.Sprintf("[%s] %s (%d · %s)", cfg.key, cfg.label, count, FormatBytes(ram))

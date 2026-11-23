@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/sancheza/tabwrangler/core/browser/firefox"
 	"github.com/sancheza/tabwrangler/core/types"
 )
 
@@ -28,13 +29,35 @@ func (a *ExtensionAdapter) Browser() types.BrowserType {
 	return a.browser
 }
 
-// IsAvailable reports whether a live companion extension bridge is connected.
+// IsAvailable reports whether a live companion extension bridge is connected,
+// or for Firefox if session recovery files are available.
 func (a *ExtensionAdapter) IsAvailable() bool {
-	return a.server != nil && a.server.IsBrowserConnected(a.browser)
+	if a.server != nil && a.server.IsBrowserConnected(a.browser) {
+		return true
+	}
+	if a.browser == types.BrowserFirefox {
+		return len(firefox.FindRecoveryFiles()) > 0
+	}
+	return false
 }
 
-// ListTabs fetches the active tab snapshot from the extension.
+// ListTabs fetches the active tab snapshot from the extension, falling back to session files for Firefox.
 func (a *ExtensionAdapter) ListTabs(ctx context.Context) ([]types.Tab, error) {
+	if a.server != nil && a.server.IsBrowserConnected(a.browser) {
+		return a.listTabsViaBridge(ctx)
+	}
+
+	if a.browser == types.BrowserFirefox {
+		files := firefox.FindRecoveryFiles()
+		if len(files) > 0 {
+			return firefox.ReadSessionTabs(files[0])
+		}
+	}
+
+	return nil, fmt.Errorf("bridge not connected for %s", a.browser)
+}
+
+func (a *ExtensionAdapter) listTabsViaBridge(ctx context.Context) ([]types.Tab, error) {
 	resp, err := a.server.SendRequest(ctx, a.browser, Request{
 		Action: ActionListTabs,
 	})
@@ -85,6 +108,9 @@ func (a *ExtensionAdapter) ListTabs(ctx context.Context) ([]types.Tab, error) {
 
 // FocusTab instructs the extension to activate the tab and focus the window.
 func (a *ExtensionAdapter) FocusTab(ctx context.Context, tab types.Tab) error {
+	if a.server == nil || !a.server.IsBrowserConnected(a.browser) {
+		return fmt.Errorf("companion extension not connected for %s (load extension/ via about:debugging or chrome://extensions to control tabs)", a.browser)
+	}
 	tabID, err := strconv.Atoi(tab.TabID)
 	if err != nil {
 		return fmt.Errorf("invalid tab id: %w", err)
@@ -110,6 +136,9 @@ func (a *ExtensionAdapter) FocusTab(ctx context.Context, tab types.Tab) error {
 
 // DiscardTabs instructs the extension to discard memory for the specified tabs.
 func (a *ExtensionAdapter) DiscardTabs(ctx context.Context, tabs []types.Tab) (int, int, error) {
+	if a.server == nil || !a.server.IsBrowserConnected(a.browser) {
+		return 0, len(tabs), fmt.Errorf("companion extension not connected for %s", a.browser)
+	}
 	tabIDs := make([]int, 0, len(tabs))
 	skipped := 0
 
@@ -143,6 +172,9 @@ func (a *ExtensionAdapter) DiscardTabs(ctx context.Context, tabs []types.Tab) (i
 
 // CloseTabs instructs the extension to close the specified tabs.
 func (a *ExtensionAdapter) CloseTabs(ctx context.Context, tabs []types.Tab) (int, int, error) {
+	if a.server == nil || !a.server.IsBrowserConnected(a.browser) {
+		return 0, len(tabs), fmt.Errorf("companion extension not connected for %s", a.browser)
+	}
 	tabIDs := make([]int, 0, len(tabs))
 	failed := 0
 
