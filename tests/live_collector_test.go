@@ -9,6 +9,7 @@ import (
 	"github.com/sancheza/tabwrangler/core/browser/safari"
 	"github.com/sancheza/tabwrangler/core/collector"
 	"github.com/sancheza/tabwrangler/core/telemetry"
+	"github.com/sancheza/tabwrangler/core/tui"
 	"github.com/sancheza/tabwrangler/core/types"
 )
 
@@ -29,15 +30,26 @@ func TestLiveCollectorFetch(t *testing.T) {
 	t.Logf("FetchAll completed: %d tabs, errs: %v", len(tabs), errs)
 
 	procColl := telemetry.NewOSCollector()
+	var stats map[types.BrowserType]telemetry.BrowserProcessStats
 	if procs, err := procColl.CollectBrowserProcesses(); err == nil {
 		tabs = telemetry.EnrichTabsWithMetrics(tabs, procs)
+		stats = telemetry.CalculateBrowserStats(procs)
 	}
+
+	ffStats := stats[types.BrowserFirefox]
+	t.Logf("Firefox process tree: Total RAM = %s (%d bytes), Total CPU = %.2f%% across %d processes (%d renderers)",
+		tui.FormatBytes(ffStats.TotalRAMBytes), ffStats.TotalRAMBytes, ffStats.TotalCPUPercent, ffStats.ProcessCount, ffStats.RendererCount)
 
 	firefoxCount := 0
 	for _, tab := range tabs {
 		if tab.Browser == types.BrowserFirefox {
 			firefoxCount++
 		}
+	}
+
+	for i, tab := range tabs[:5] {
+		t.Logf("Tab %d: title=%q, cpu=%f (%s), ram=%d (%s), scope=%s",
+			i, tab.Title, tab.Metrics.CPUPercent, tab.FormattedCPU(), tab.Metrics.RAMBytes, tab.FormattedRAM(), tab.Metrics.Scope)
 	}
 
 	t.Logf("Discovered %d Firefox tabs on live system", firefoxCount)

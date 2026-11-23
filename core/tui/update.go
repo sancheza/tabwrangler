@@ -24,6 +24,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.isRefreshing = false
 		m.allTabs = msg.Tabs
 		m.browserErrors = msg.Errors
+		if msg.BrowserStats != nil {
+			m.browserStats = msg.BrowserStats
+		}
 		m.FilterAndSortTabs()
 		return m, nil
 

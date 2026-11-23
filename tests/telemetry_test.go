@@ -36,13 +36,19 @@ func TestEnrichTabsWithMetrics(t *testing.T) {
 			ID:      "chrome:1:1",
 			Browser: types.BrowserChrome,
 			Title:   "Tab 1",
-			Metrics: types.Metrics{Scope: types.MetricScopeUnavailable},
+			Metrics: types.Metrics{
+				ProcessID: 1001,
+				Scope:     types.MetricScopeUnavailable,
+			},
 		},
 		{
 			ID:      "chrome:1:2",
 			Browser: types.BrowserChrome,
-			Title:   "Tab 2",
-			Metrics: types.Metrics{Scope: types.MetricScopeUnavailable},
+			Title:   "Tab 2 without PID",
+			Metrics: types.Metrics{
+				ProcessID: 0,
+				Scope:     types.MetricScopeUnavailable,
+			},
 		},
 	}
 
@@ -56,7 +62,24 @@ func TestEnrichTabsWithMetrics(t *testing.T) {
 				RAMBytes:   400 * 1024 * 1024,
 				IsRenderer: true,
 			},
+			{
+				PID:        1000,
+				Name:       "Google Chrome",
+				Browser:    types.BrowserChrome,
+				CPUPercent: 2.0,
+				RAMBytes:   200 * 1024 * 1024,
+				IsRenderer: false,
+			},
 		},
+	}
+
+	stats := telemetry.CalculateBrowserStats(procs)
+	chromeStats := stats[types.BrowserChrome]
+	if chromeStats.TotalRAMBytes != 600*1024*1024 {
+		t.Errorf("Expected 600MB total browser RAM, got %d", chromeStats.TotalRAMBytes)
+	}
+	if chromeStats.ProcessCount != 2 {
+		t.Errorf("Expected 2 processes, got %d", chromeStats.ProcessCount)
 	}
 
 	enriched := telemetry.EnrichTabsWithMetrics(tabs, procs)
@@ -65,13 +88,22 @@ func TestEnrichTabsWithMetrics(t *testing.T) {
 		t.Fatalf("Expected 2 tabs, got %d", len(enriched))
 	}
 
-	// Because 2 tabs share 1 renderer process, scope should be MetricScopeSharedProcess
-	for _, tab := range enriched {
-		if tab.Metrics.Scope != types.MetricScopeSharedProcess {
-			t.Errorf("Expected scope shared_process, got %s", tab.Metrics.Scope)
-		}
-		if tab.Metrics.RAMBytes != 200*1024*1024 {
-			t.Errorf("Expected 200MB shared RAM, got %d", tab.Metrics.RAMBytes)
-		}
+	// Tab 1 matched PID 1001
+	if enriched[0].Metrics.Scope != types.MetricScopeTab {
+		t.Errorf("Expected scope tab for tab 1, got %s", enriched[0].Metrics.Scope)
+	}
+	if enriched[0].Metrics.RAMBytes != 400*1024*1024 {
+		t.Errorf("Expected 400MB RAM, got %d", enriched[0].Metrics.RAMBytes)
+	}
+	if enriched[0].Metrics.CPUPercent != 10.0 {
+		t.Errorf("Expected 10.0%% CPU, got %f", enriched[0].Metrics.CPUPercent)
+	}
+
+	// Tab 2 without PID must remain unavailable per Honest Telemetry rules
+	if enriched[1].Metrics.Scope != types.MetricScopeUnavailable {
+		t.Errorf("Expected scope unavailable for uncorrelated tab 2, got %s", enriched[1].Metrics.Scope)
+	}
+	if enriched[1].FormattedRAM() != "—" {
+		t.Errorf("Expected formatted RAM '—', got %s", enriched[1].FormattedRAM())
 	}
 }

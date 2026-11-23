@@ -280,7 +280,11 @@ func (m Model) renderDetailFooter() string {
 	if t.Metrics.Scope == types.MetricScopeSharedProcess {
 		scopeNote = "Metric Scope: shared process (~ denotes shared footprint)"
 	} else if t.Metrics.Scope == types.MetricScopeUnavailable {
-		scopeNote = "Metric Scope: unavailable (— browser/OS restriction)"
+		scopeNote = "Metric Scope: unavailable (— per-tab attribution restricted by browser engine)"
+		if s, ok := m.browserStats[t.Browser]; ok && s.TotalRAMBytes > 0 {
+			scopeNote = fmt.Sprintf("Metric Scope: unavailable (— browser footprint %s across %d processes)",
+				FormatBytes(s.TotalRAMBytes), s.ProcessCount)
+		}
 	}
 
 	line1 := fmt.Sprintf("Title: %s", t.Title)
@@ -348,11 +352,18 @@ func (m Model) renderDiagnosticsModal() string {
 	for _, b := range []types.BrowserType{types.BrowserChrome, types.BrowserFirefox, types.BrowserSafari} {
 		count, ram := m.AggregateStats(b)
 		status := "\033[32mActive\033[0m"
-		if err, hasErr := m.browserErrors[b]; hasErr {
+		if err, hasErr := m.browserErrors[b]; hasErr && count == 0 {
 			status = fmt.Sprintf("\033[38;5;214mDisconnected (%v)\033[0m", err)
 		}
-		items = append(items, fmt.Sprintf("• %s: %s | Tabs: %d | RAM: %s",
-			strings.Title(string(b)), status, count, FormatBytes(ram)))
+
+		procInfo := ""
+		if s, ok := m.browserStats[b]; ok && s.ProcessCount > 0 {
+			procInfo = fmt.Sprintf(" [%d procs: %d renderers, Total CPU: %.1f%%]",
+				s.ProcessCount, s.RendererCount, s.TotalCPUPercent)
+		}
+
+		items = append(items, fmt.Sprintf("• %s: %s | Tabs: %d | Host Footprint: %s%s",
+			strings.Title(string(b)), status, count, FormatBytes(ram), procInfo))
 	}
 
 	items = append(items, "")

@@ -1,5 +1,5 @@
 // Package telemetry collects process-level memory and CPU resource metrics
-// and correlates them with browser tabs.
+// and correlates them with browser tabs according to honest telemetry standards.
 package telemetry
 
 import (
@@ -19,101 +19,104 @@ type ProcessInfo struct {
 	IsRenderer bool
 }
 
+// BrowserProcessStats aggregates host resource usage for an entire browser process tree.
+type BrowserProcessStats struct {
+	TotalRAMBytes   uint64
+	TotalCPUPercent float64
+	ProcessCount    int
+	RendererCount   int
+}
+
 // ProcessCollector defines the interface for harvesting browser process metrics.
 type ProcessCollector interface {
 	CollectBrowserProcesses() (map[types.BrowserType][]ProcessInfo, error)
 }
 
-// EnrichTabsWithMetrics matches harvested browser process metrics to tab entries.
-func EnrichTabsWithMetrics(tabs []types.Tab, procs map[types.BrowserType][]ProcessInfo) []types.Tab {
-	if len(tabs) == 0 || len(procs) == 0 {
-		return tabs
-	}
-
-	// Calculate aggregate renderer and content metrics per browser
-	type browserAgg struct {
-		totalRAM   uint64
-		totalCPU   float64
-		procCount  int
-		renderers  []ProcessInfo
-	}
-	aggs := make(map[types.BrowserType]*browserAgg)
+// CalculateBrowserStats computes aggregate host resource metrics across all processes for each browser.
+func CalculateBrowserStats(procs map[types.BrowserType][]ProcessInfo) map[types.BrowserType]BrowserProcessStats {
+	stats := make(map[types.BrowserType]BrowserProcessStats)
 
 	for bt, pList := range procs {
-		agg := &browserAgg{}
+		var totalRAM uint64
+		var totalCPU float64
+		renderers := 0
+
 		for _, p := range pList {
+			totalRAM += p.RAMBytes
+			totalCPU += p.CPUPercent
 			if p.IsRenderer {
-				agg.totalRAM += p.RAMBytes
-				agg.totalCPU += p.CPUPercent
-				agg.procCount++
-				agg.renderers = append(agg.renderers, p)
+				renderers++
 			}
 		}
-		aggs[bt] = agg
+
+		stats[bt] = BrowserProcessStats{
+			TotalRAMBytes:   totalRAM,
+			TotalCPUPercent: totalCPU,
+			ProcessCount:    len(pList),
+			RendererCount:   renderers,
+		}
 	}
 
-	// Count tabs per browser
-	tabCounts := make(map[types.BrowserType]int)
-	for _, t := range tabs {
-		if !t.IsDiscarded {
-			tabCounts[t.Browser]++
-		}
+	return stats
+}
+
+// EnrichTabsWithMetrics matches harvested browser process metrics to tab entries.
+// Adheres strictly to Honest Telemetry: if exact 1:1 tab-to-process attribution
+// is not established, scope remains MetricScopeUnavailable ('—') rather than
+// inventing a uniform artificial average.
+func EnrichTabsWithMetrics(tabs []types.Tab, procs map[types.BrowserType][]ProcessInfo) []types.Tab {
+	if len(tabs) == 0 {
+		return tabs
 	}
 
 	result := make([]types.Tab, len(tabs))
 	copy(result, tabs)
 
+	// Build lookup by PID for each browser
+	pidsByBrowser := make(map[types.BrowserType]map[int]ProcessInfo)
+	for bt, pList := range procs {
+		pidsByBrowser[bt] = make(map[int]ProcessInfo)
+		for _, p := range pList {
+			pidsByBrowser[bt][p.PID] = p
+		}
+	}
+
 	for i := range result {
 		t := &result[i]
+
 		if t.IsDiscarded {
-			// Discarded tabs have negligible footprint
 			t.Metrics = types.Metrics{
 				CPUPercent: 0.0,
-				RAMBytes:   15 * 1024 * 1024,
-				Scope:      types.MetricScopeTab,
+				RAMBytes:   0,
+				Scope:      types.MetricScopeUnavailable,
 			}
-			continue
-		}
-
-		agg, hasAgg := aggs[t.Browser]
-		if !hasAgg || agg.procCount == 0 {
 			continue
 		}
 
 		// If tab already has an explicit ProcessID that matches a specific process
-		matched := false
 		if t.Metrics.ProcessID > 0 {
-			for _, p := range agg.renderers {
-				if p.PID == t.Metrics.ProcessID {
+			if browserProcs, ok := pidsByBrowser[t.Browser]; ok {
+				if p, matched := browserProcs[t.Metrics.ProcessID]; matched {
 					t.Metrics.CPUPercent = p.CPUPercent
 					t.Metrics.RAMBytes = p.RAMBytes
 					t.Metrics.Scope = types.MetricScopeTab
-					matched = true
-					break
+					continue
 				}
 			}
 		}
 
-		if matched {
-			continue
-		}
-
-		// Proportional allocation across active tabs for shared multi-process engines
-		count := tabCounts[t.Browser]
-		if count > 0 {
-			shareRAM := agg.totalRAM / uint64(count)
-			shareCPU := agg.totalCPU / float64(count)
-
-			if agg.procCount >= count {
-				t.Metrics.CPUPercent = shareCPU
-				t.Metrics.RAMBytes = shareRAM
-				t.Metrics.Scope = types.MetricScopeTab
-			} else {
-				t.Metrics.CPUPercent = shareCPU
-				t.Metrics.RAMBytes = shareRAM
-				t.Metrics.Scope = types.MetricScopeSharedProcess
+		// If tab already has non-zero telemetry from mock provider or bridge
+		if t.Metrics.Scope == types.MetricScopeTab || t.Metrics.Scope == types.MetricScopeSharedProcess {
+			if t.Metrics.RAMBytes > 0 || t.Metrics.CPUPercent > 0 {
+				continue
 			}
 		}
+
+		// When OS/browser boundary does not expose 1:1 renderer PID to tab mapping,
+		// leave as unavailable ('—') to preserve honest telemetry.
+		t.Metrics.Scope = types.MetricScopeUnavailable
+		t.Metrics.RAMBytes = 0
+		t.Metrics.CPUPercent = 0.0
 	}
 
 	return result

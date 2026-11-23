@@ -28,8 +28,9 @@ const (
 
 // RefreshDoneMsg is emitted when an on-demand tab refresh finishes.
 type RefreshDoneMsg struct {
-	Tabs   []types.Tab
-	Errors map[types.BrowserType]error
+	Tabs         []types.Tab
+	Errors       map[types.BrowserType]error
+	BrowserStats map[types.BrowserType]telemetry.BrowserProcessStats
 }
 
 // ActionDoneMsg is emitted when a focus, discard, or close action completes.
@@ -57,6 +58,7 @@ type Model struct {
 	visibleTabs     []types.Tab
 	selectedIDs     map[string]bool
 	browserErrors   map[types.BrowserType]error
+	browserStats    map[types.BrowserType]telemetry.BrowserProcessStats
 
 	// Browser filtering & scoping
 	activeBrowser   types.BrowserType
@@ -100,6 +102,7 @@ func NewModel(c *collector.Collector, initialBrowser types.BrowserType, dryRun b
 		activeBrowser:   initialBrowser,
 		selectedIDs:     make(map[string]bool),
 		browserErrors:   make(map[types.BrowserType]error),
+		browserStats:    make(map[types.BrowserType]telemetry.BrowserProcessStats),
 		filterInput:     ti,
 		showSpecial:     false,
 		showFullURL:     false,
@@ -133,13 +136,16 @@ func (m *Model) triggerRefresh() tea.Cmd {
 
 		// Enrich tabs with live process telemetry
 		procCollector := telemetry.NewOSCollector()
+		var stats map[types.BrowserType]telemetry.BrowserProcessStats
 		if procs, err := procCollector.CollectBrowserProcesses(); err == nil && len(procs) > 0 {
 			tabs = telemetry.EnrichTabsWithMetrics(tabs, procs)
+			stats = telemetry.CalculateBrowserStats(procs)
 		}
 
 		return RefreshDoneMsg{
-			Tabs:   tabs,
-			Errors: errs,
+			Tabs:         tabs,
+			Errors:       errs,
+			BrowserStats: stats,
 		}
 	}
 }
@@ -235,10 +241,30 @@ func (m *Model) SelectedOrHighlightedTabs() []types.Tab {
 // AggregateStats calculates the total tab count and aggregate RAM for a given browser scope.
 func (m *Model) AggregateStats(b types.BrowserType) (int, uint64) {
 	count := 0
-	var ram uint64
 	for _, t := range m.allTabs {
 		if b == types.BrowserAll || t.Browser == b {
 			count++
+		}
+	}
+
+	// If we have live host process telemetry, use the exact process tree memory footprint
+	if len(m.browserStats) > 0 {
+		if b == types.BrowserAll {
+			var totalRAM uint64
+			for _, s := range m.browserStats {
+				totalRAM += s.TotalRAMBytes
+			}
+			return count, totalRAM
+		}
+		if s, ok := m.browserStats[b]; ok && s.TotalRAMBytes > 0 {
+			return count, s.TotalRAMBytes
+		}
+	}
+
+	// Fallback to summing tab metrics (e.g. in mock mode)
+	var ram uint64
+	for _, t := range m.allTabs {
+		if b == types.BrowserAll || t.Browser == b {
 			ram += t.Metrics.RAMBytes
 		}
 	}
