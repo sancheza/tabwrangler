@@ -21,31 +21,104 @@ import (
 const Version = "1.0.0"
 
 func printUsage() {
-	helpText := `TabWrangler — Cross-Browser Tab Inspector & Control TUI
+	useColor := os.Getenv("NO_COLOR") == ""
 
-Usage:
-  tabwrangler [flags]
-  tabwrangler setup
-  tabwrangler bridge
+	cReset := ""
+	cDim := ""
+	cGreen := ""
+	cAmber := ""
+	cCyan := ""
+	cBoldCyan := ""
+	cBoldWhite := ""
 
-Flags:
-  -v, --version          Print version and exit
-  -h, --help             Show this help message and exit
-      --browser string   Pre-filter to specific browser (all, chrome, firefox, safari) (default "all")
-      --mock             Run with mock browser provider for testing and demonstration
-      --dry-run          Preview actions without modifying or closing actual tabs
+	if useColor {
+		cReset = "\033[0m"
+		cDim = "\033[2m"
+		cGreen = "\033[32m"
+		cAmber = "\033[38;5;214m" // True 256-color amber per Dev ADR 0020
+		cCyan = "\033[36m"
+		cBoldCyan = "\033[1;36m"
+		cBoldWhite = "\033[1;37m"
+	}
 
-Commands:
-  setup                  Install browser native messaging manifests and verify permissions
-  bridge                 Execute native messaging bridge over stdio (called by browsers)
+	var b strings.Builder
 
-Examples:
-  tabwrangler
-  tabwrangler --browser chrome
-  tabwrangler --mock
-  tabwrangler setup
-`
-	fmt.Print(helpText)
+	// Title Banner
+	b.WriteString(cBoldCyan + "TabWrangler" + cReset + " " + cDim + "v" + Version + cReset + " — " + cBoldWhite + "Cross-Browser Tab Inspector & Resource Control TUI\n" + cReset)
+	b.WriteString(cDim + "Inspect, search, correlate OS process memory/CPU, and manage tabs across Chrome, Firefox, and Safari.\n\n" + cReset)
+
+	// Usage
+	b.WriteString(cBoldCyan + "USAGE:\n" + cReset)
+	b.WriteString("  " + cGreen + "tabwrangler" + cReset + " [flags]\n")
+	b.WriteString("  " + cGreen + "tabwrangler setup" + cReset + " [" + cCyan + "--open" + cReset + "]\n")
+	b.WriteString("  " + cGreen + "tabwrangler bridge" + cReset + "\n\n")
+
+	// Description
+	b.WriteString(cBoldCyan + "DESCRIPTION:\n" + cReset)
+	b.WriteString("  TabWrangler aggregates open tabs across Google Chrome, Mozilla Firefox, and Apple\n")
+	b.WriteString("  Safari into a single, high-performance terminal interface. It correlates live host\n")
+	b.WriteString("  process telemetry (RAM and CPU usage) with individual tabs and gives you instant\n")
+	b.WriteString("  keyboard controls to focus windows, discard memory hogs, and close tab clutter.\n\n")
+
+	// Commands
+	b.WriteString(cBoldCyan + "COMMANDS:\n" + cReset)
+	b.WriteString("  " + cGreen + "setup" + cReset + "             Install Native Messaging manifests and configure host permissions\n")
+	b.WriteString("                    Options: " + cCyan + "--open" + cReset + ", " + cCyan + "-o" + cReset + " (opens browser add-on debugging page directly)\n")
+	b.WriteString("  " + cGreen + "bridge" + cReset + "            Run stdio Native Messaging host bridge (invoked automatically by browsers)\n\n")
+
+	// Flags
+	b.WriteString(cBoldCyan + "FLAGS:\n" + cReset)
+	b.WriteString("  " + cCyan + "-h, --help" + cReset + "          Show this help screen and exit\n")
+	b.WriteString("  " + cCyan + "-v, --version" + cReset + "       Print version information (" + Version + ") and exit\n")
+	b.WriteString("      " + cCyan + "--browser" + cReset + " " + cAmber + "<name>" + cReset + "  Filter initial view: " + cAmber + "all" + cReset + ", " + cAmber + "chrome" + cReset + ", " + cAmber + "firefox" + cReset + ", " + cAmber + "safari" + cReset + " (default: all)\n")
+	b.WriteString("      " + cCyan + "--mock" + cReset + "          Launch with simulated multi-browser tab data for testing and demos\n")
+	b.WriteString("      " + cCyan + "--dry-run" + cReset + "       Preview tab focus, discard, and close mutations without modifying state\n\n")
+
+	// Keyboard Controls in TUI
+	b.WriteString(cBoldCyan + "TUI KEYBOARD SHORTCUTS:\n" + cReset)
+	b.WriteString("  " + cBoldWhite + "Navigation:" + cReset + "\n")
+	b.WriteString("    " + cAmber + "j" + cReset + " / " + cAmber + "k" + cReset + " or " + cAmber + "↑" + cReset + " / " + cAmber + "↓" + cReset + "   Move selection cursor down / up\n")
+	b.WriteString("    " + cAmber + "g" + cReset + " / " + cAmber + "G" + cReset + "          Jump to top / bottom of tab list\n")
+	b.WriteString("  " + cBoldWhite + "Actions:" + cReset + "\n")
+	b.WriteString("    " + cAmber + "Enter" + cReset + " or " + cAmber + "f" + cReset + "     Focus tab and raise browser window to very front of screen\n")
+	b.WriteString("    " + cAmber + "d" + cReset + "              Discard memory for highlighted or selected tabs (Chrome & Firefox)\n")
+	b.WriteString("    " + cAmber + "c" + cReset + "              Close highlighted or selected tabs (prompts confirmation for > 3 tabs)\n")
+	b.WriteString("  " + cBoldWhite + "Selection:" + cReset + "\n")
+	b.WriteString("    " + cAmber + "Space" + cReset + "          Toggle checkbox selection on highlighted tab\n")
+	b.WriteString("    " + cAmber + "a" + cReset + " / " + cAmber + "A" + cReset + "          Select all visible tabs / Clear all selections\n")
+	b.WriteString("  " + cBoldWhite + "Filters & Sorting:" + cReset + "\n")
+	b.WriteString("    " + cAmber + "/" + cReset + "              Open live filter query (filters Title, URL, Domain)\n")
+	b.WriteString("    " + cAmber + "s" + cReset + "              Step sort direction (most ⇄ least, A ⇄ Z), then advance column\n")
+	b.WriteString("    " + cAmber + "S" + cReset + "              Invert current sort direction\n")
+	b.WriteString("    " + cAmber + "0" + cReset + "–" + cAmber + "3" + cReset + " or " + cAmber + "[" + cReset + " / " + cAmber + "]" + cReset + "    Switch browser tab filter: [0] All, [1] Chrome, [2] Firefox, [3] Safari\n")
+	b.WriteString("  " + cBoldWhite + "Display & Helpers:" + cReset + "\n")
+	b.WriteString("    " + cAmber + "t" + cReset + "              Toggle visibility of internal/special tabs (chrome://, about:)\n")
+	b.WriteString("    " + cAmber + "u" + cReset + "              Toggle full URL column visibility\n")
+	b.WriteString("    " + cAmber + "r" + cReset + "              Refresh tab and host process telemetry snapshot on demand\n")
+	b.WriteString("    " + cAmber + "?" + cReset + "              Show in-app diagnostics modal and bridge status\n")
+	b.WriteString("    " + cAmber + "q" + cReset + "              Quit TabWrangler\n\n")
+
+	// Examples
+	b.WriteString(cBoldCyan + "EXAMPLES:\n" + cReset)
+	b.WriteString("  " + cDim + "# Launch interactive TUI aggregating all browsers" + cReset + "\n")
+	b.WriteString("  " + cGreen + "tabwrangler" + cReset + "\n\n")
+	b.WriteString("  " + cDim + "# Start TUI pre-filtered to Firefox tabs only" + cReset + "\n")
+	b.WriteString("  " + cGreen + "tabwrangler --browser firefox" + cReset + "\n\n")
+	b.WriteString("  " + cDim + "# Safe dry-run mode: test discarding or closing tabs without making mutations" + cReset + "\n")
+	b.WriteString("  " + cGreen + "tabwrangler --dry-run" + cReset + "\n\n")
+	b.WriteString("  " + cDim + "# Explore the interface using mock browser data (no browsers required)" + cReset + "\n")
+	b.WriteString("  " + cGreen + "tabwrangler --mock" + cReset + "\n\n")
+	b.WriteString("  " + cDim + "# Run initial setup and automatically open the Firefox add-on debugging page" + cReset + "\n")
+	b.WriteString("  " + cGreen + "tabwrangler setup --open" + cReset + "\n\n")
+
+	// Setup Guide
+	b.WriteString(cBoldCyan + "QUICK COMPANION SETUP (Chrome & Firefox):\n" + cReset)
+	b.WriteString("  1. Run " + cGreen + "tabwrangler setup --open" + cReset + " to register manifests and copy extension path to clipboard.\n")
+	b.WriteString("  2. In Firefox: On " + cCyan + "about:debugging" + cReset + ", click " + cBoldWhite + "This Firefox" + cReset + " -> " + cBoldWhite + "Load Temporary Add-on..." + cReset + " -> paste clipboard (" + cAmber + "Cmd+V" + cReset + ").\n")
+	b.WriteString("  3. In Chrome: Navigate to " + cCyan + "chrome://extensions" + cReset + ", enable " + cBoldWhite + "Developer mode" + cReset + ", click " + cBoldWhite + "Load unpacked" + cReset + ", select " + cCyan + "extension/" + cReset + ".\n")
+	b.WriteString("  4. Safari works out of the box with zero extensions required via native macOS automation.\n")
+
+	fmt.Print(b.String())
 }
 
 func main() {

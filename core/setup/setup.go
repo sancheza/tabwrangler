@@ -58,8 +58,20 @@ func Run(binaryPath string, openBrowser bool) error {
 		}
 
 		// Copy manifest path to clipboard if pbcopy is available
-		manifestPath, _ := filepath.Abs(filepath.Join(filepath.Dir(binaryPath), "extension", "manifest.json"))
-		if _, err := os.Stat(manifestPath); err == nil {
+		candidatePaths := []string{
+			filepath.Join(filepath.Dir(binaryPath), "extension", "manifest.json"),
+			"extension/manifest.json",
+			filepath.Join(homeDir, "dev", "tabwrangler", "extension", "manifest.json"),
+		}
+		var manifestPath string
+		for _, cand := range candidatePaths {
+			abs, _ := filepath.Abs(cand)
+			if _, err := os.Stat(abs); err == nil {
+				manifestPath = abs
+				break
+			}
+		}
+		if manifestPath != "" {
 			pb := exec.Command("pbcopy")
 			pb.Stdin = strings.NewReader(manifestPath)
 			if pb.Run() == nil {
