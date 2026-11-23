@@ -1,0 +1,16 @@
+# Binaries and build artifacts
+/tabwrangler
+/tabwrangler.exe
+*.exe
+*.o
+*.a
+
+# OS metadata
+.DS_Store
+Thumbs.db
+
+# Runtime directories per Dev ADR 0002
+cache/
+logs/
+reports/
+outputs/

@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "TabWrangler Companion",
+  "version": "1.0.0",
+  "description": "Companion WebExtension for the TabWrangler Terminal User Interface",
+  "permissions": [
+    "tabs",
+    "nativeMessaging",
+    "storage"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "scripts": ["background.js"]
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "companion@tabwrangler.local",
+      "strict_min_version": "109.0"
+    }
+  }
+}

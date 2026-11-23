@@ -1,0 +1,250 @@
+// Package tui implements the Bubble Tea v2 terminal interface for TabWrangler.
+package tui
+
+import (
+	"context"
+	"fmt"
+	"sort"
+	"strings"
+	"time"
+
+	"charm.land/bubbles/v2/textinput"
+	tea "charm.land/bubbletea/v2"
+	"github.com/sancheza/tabwrangler/core/collector"
+	"github.com/sancheza/tabwrangler/core/types"
+)
+
+// SortColumn represents the active column used for sorting.
+type SortColumn string
+
+const (
+	SortRAM      SortColumn = "RAM"
+	SortCPU      SortColumn = "CPU"
+	SortLastUsed SortColumn = "Last Used"
+	SortBrowser  SortColumn = "Browser"
+	SortTitle    SortColumn = "Title"
+)
+
+// RefreshDoneMsg is emitted when an on-demand tab refresh finishes.
+type RefreshDoneMsg struct {
+	Tabs   []types.Tab
+	Errors map[types.BrowserType]error
+}
+
+// ActionDoneMsg is emitted when a focus, discard, or close action completes.
+type ActionDoneMsg struct {
+	Action    string
+	Toast     string
+	IsWarning bool
+	Err       error
+}
+
+// ClearToastMsg is emitted to clear toast messages after a display interval.
+type ClearToastMsg struct{}
+
+// Model encapsulates the Bubble Tea state for TabWrangler.
+type Model struct {
+	collector       *collector.Collector
+	dryRun          bool
+	width           int
+	height          int
+	ready           bool
+	isRefreshing    bool
+
+	// Tab data
+	allTabs         []types.Tab
+	visibleTabs     []types.Tab
+	selectedIDs     map[string]bool
+	browserErrors   map[types.BrowserType]error
+
+	// Browser filtering & scoping
+	activeBrowser   types.BrowserType
+	allowedBrowsers []types.BrowserType
+
+	// Search & display toggles
+	filterInput     textinput.Model
+	isFiltering     bool
+	showSpecial     bool
+	showFullURL     bool
+
+	// Sorting
+	sortCol         SortColumn
+	sortDesc        bool
+
+	// Navigation & virtual table viewport
+	cursor          int
+	viewportOffset  int
+
+	// Overlays & Confirmation
+	showHelp        bool
+	showDiagnostics bool
+	confirmClose    bool
+	closingTabs     []types.Tab
+
+	// Feedback
+	toast           string
+	toastIsWarning  bool
+}
+
+// NewModel constructs a Model initialized with the given collector.
+func NewModel(c *collector.Collector, initialBrowser types.BrowserType, dryRun bool) Model {
+	ti := textinput.New()
+	ti.Placeholder = "Filter tabs by title, domain, or URL..."
+	ti.Prompt = "/ "
+	ti.CharLimit = 120
+
+	return Model{
+		collector:       c,
+		dryRun:          dryRun,
+		activeBrowser:   initialBrowser,
+		selectedIDs:     make(map[string]bool),
+		browserErrors:   make(map[types.BrowserType]error),
+		filterInput:     ti,
+		showSpecial:     false,
+		showFullURL:     false,
+		sortCol:         SortRAM,
+		sortDesc:        true,
+		cursor:          0,
+		viewportOffset:  0,
+		allowedBrowsers: []types.BrowserType{
+			types.BrowserAll,
+			types.BrowserChrome,
+			types.BrowserFirefox,
+			types.BrowserSafari,
+		},
+	}
+}
+
+// Init triggers initial on-demand tab snapshot.
+func (m Model) Init() tea.Cmd {
+	return tea.Batch(
+		m.triggerRefresh(),
+	)
+}
+
+// triggerRefresh queries all registered browser adapters asynchronously.
+func (m *Model) triggerRefresh() tea.Cmd {
+	m.isRefreshing = true
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+		tabs, errs := m.collector.FetchAll(ctx, 3*time.Second)
+		return RefreshDoneMsg{
+			Tabs:   tabs,
+			Errors: errs,
+		}
+	}
+}
+
+// FilterAndSortTabs recomputes the visibleTabs slice based on active filters and sort criteria.
+func (m *Model) FilterAndSortTabs() {
+	var filtered []types.Tab
+	query := strings.ToLower(strings.TrimSpace(m.filterInput.Value()))
+
+	for _, t := range m.allTabs {
+		// Browser filter
+		if m.activeBrowser != types.BrowserAll && t.Browser != m.activeBrowser {
+			continue
+		}
+
+		// Special tabs filter
+		if !m.showSpecial && t.IsSpecial {
+			continue
+		}
+
+		// Text search query
+		if query != "" {
+			inTitle := strings.Contains(strings.ToLower(t.Title), query)
+			inURL := strings.Contains(strings.ToLower(t.URL), query)
+			inDomain := strings.Contains(strings.ToLower(t.Domain), query)
+			if !inTitle && !inURL && !inDomain {
+				continue
+			}
+		}
+
+		filtered = append(filtered, t)
+	}
+
+	// Apply Sorting
+	sort.SliceStable(filtered, func(i, j int) bool {
+		a, b := filtered[i], filtered[j]
+		var less bool
+
+		switch m.sortCol {
+		case SortRAM:
+			less = a.Metrics.RAMBytes < b.Metrics.RAMBytes
+		case SortCPU:
+			less = a.Metrics.CPUPercent < b.Metrics.CPUPercent
+		case SortLastUsed:
+			less = a.LastAccessedUnixMs < b.LastAccessedUnixMs
+		case SortBrowser:
+			less = a.Browser < b.Browser
+		case SortTitle:
+			less = strings.ToLower(a.Title) < strings.ToLower(b.Title)
+		default:
+			less = a.Metrics.RAMBytes < b.Metrics.RAMBytes
+		}
+
+		if m.sortDesc {
+			return !less
+		}
+		return less
+	})
+
+	m.visibleTabs = filtered
+
+	// Clamp cursor
+	if len(m.visibleTabs) == 0 {
+		m.cursor = 0
+		m.viewportOffset = 0
+	} else {
+		if m.cursor >= len(m.visibleTabs) {
+			m.cursor = len(m.visibleTabs) - 1
+		}
+		if m.cursor < 0 {
+			m.cursor = 0
+		}
+	}
+}
+
+// SelectedOrHighlightedTabs returns all selected tabs, or the currently highlighted tab if none selected.
+func (m *Model) SelectedOrHighlightedTabs() []types.Tab {
+	var selected []types.Tab
+	for _, t := range m.visibleTabs {
+		if m.selectedIDs[t.ID] {
+			selected = append(selected, t)
+		}
+	}
+	if len(selected) > 0 {
+		return selected
+	}
+	if len(m.visibleTabs) > 0 && m.cursor < len(m.visibleTabs) {
+		return []types.Tab{m.visibleTabs[m.cursor]}
+	}
+	return nil
+}
+
+// AggregateStats calculates the total tab count and aggregate RAM for a given browser scope.
+func (m *Model) AggregateStats(b types.BrowserType) (int, uint64) {
+	count := 0
+	var ram uint64
+	for _, t := range m.allTabs {
+		if b == types.BrowserAll || t.Browser == b {
+			count++
+			ram += t.Metrics.RAMBytes
+		}
+	}
+	return count, ram
+}
+
+// FormatBytes formats byte quantities into readable strings.
+func FormatBytes(b uint64) string {
+	const unit = 1024
+	f := float64(b)
+	if f < unit*unit {
+		return fmt.Sprintf("%.0f KB", f/unit)
+	} else if f < unit*unit*unit {
+		return fmt.Sprintf("%.1f MB", f/(unit*unit))
+	}
+	return fmt.Sprintf("%.1f GB", f/(unit*unit*unit))
+}
