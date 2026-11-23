@@ -199,7 +199,7 @@ func (m Model) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		}
 
 	case "s":
-		m.cycleSortColumn()
+		m.StepSort()
 		m.FilterAndSortTabs()
 
 	case "S":
@@ -287,6 +287,38 @@ func (m *Model) cycleSortColumn() {
 		}
 	}
 	m.sortCol = SortRAM
+}
+
+func isPrimarySortDirection(col SortColumn, desc bool) bool {
+	switch col {
+	case SortRAM, SortCPU, SortLastUsed:
+		return desc == true // primary for numeric metrics is highest/newest first
+	case SortDomain, SortTitle, SortBrowser:
+		return desc == false // primary for text fields is A-Z
+	default:
+		return desc == true
+	}
+}
+
+func defaultSortDirection(col SortColumn) bool {
+	switch col {
+	case SortRAM, SortCPU, SortLastUsed:
+		return true // desc
+	case SortDomain, SortTitle, SortBrowser:
+		return false // asc
+	default:
+		return true
+	}
+}
+
+// StepSort flips between primary and secondary direction before advancing to the next column.
+func (m *Model) StepSort() {
+	if isPrimarySortDirection(m.sortCol, m.sortDesc) {
+		m.sortDesc = !m.sortDesc
+	} else {
+		m.cycleSortColumn()
+		m.sortDesc = defaultSortDirection(m.sortCol)
+	}
 }
 
 func (m *Model) executeFocusTab(tab types.Tab) tea.Cmd {

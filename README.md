@@ -95,7 +95,8 @@ tabwrangler --version
 | `0`–`3` or `[` / `]` | Switch browser filter (`All`, `Chrome`, `Firefox`, `Safari`) |
 | `/` | Enter live filter query (matches `Title`, `URL`, `Domain`) |
 | `Esc` | Clear filter or cancel confirmation |
-| `s` / `S` | Cycle sort column (`RAM`, `CPU`, `Last Used`, `Domain`, `Title`, `Browser`) / Reverse direction |
+| `s` | Toggle sort direction (most ⇄ least, A ⇄ Z), then advance to next column |
+| `S` | Invert current sort direction |
 | `t` | Toggle special/internal tabs (`chrome://*`, `about:*`, `file://*`) |
 | `u` | Toggle full URL column visibility |
 | `Enter` or `f` | Focus highlighted tab and bring browser to foreground |

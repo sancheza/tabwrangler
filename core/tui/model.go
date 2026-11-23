@@ -299,6 +299,11 @@ func (m *Model) SetSortDescending(desc bool) {
 	m.sortDesc = desc
 }
 
+// IsSortDescending returns whether the active sort is descending.
+func (m *Model) IsSortDescending() bool {
+	return m.sortDesc
+}
+
 // FormatBytes formats byte quantities into readable strings.
 func FormatBytes(b uint64) string {
 	const unit = 1024

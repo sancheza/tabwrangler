@@ -73,6 +73,28 @@ func TestTUIModelFilteringAndSorting(t *testing.T) {
 		t.Fatalf("Expected 1000MB total RAM, got %d", ram)
 	}
 
+	// Test StepSort stepping behavior
+	model.SetSortColumn(tui.SortRAM)
+	model.SetSortDescending(true)
+
+	// 1. First 's' flips RAM from most to least (desc -> asc)
+	model.StepSort()
+	if model.SelectedSortColumn() != tui.SortRAM || model.IsSortDescending() {
+		t.Fatalf("Expected RAM asc after first StepSort, got %s desc=%v", model.SelectedSortColumn(), model.IsSortDescending())
+	}
+
+	// 2. Second 's' advances to CPU and sets primary (most first, desc)
+	model.StepSort()
+	if model.SelectedSortColumn() != tui.SortCPU || !model.IsSortDescending() {
+		t.Fatalf("Expected CPU desc after second StepSort, got %s desc=%v", model.SelectedSortColumn(), model.IsSortDescending())
+	}
+
+	// 3. Third 's' flips CPU from most to least (desc -> asc)
+	model.StepSort()
+	if model.SelectedSortColumn() != tui.SortCPU || model.IsSortDescending() {
+		t.Fatalf("Expected CPU asc after third StepSort, got %s desc=%v", model.SelectedSortColumn(), model.IsSortDescending())
+	}
+
 	// Test Sort by Domain ascending
 	model.SetSortColumn(tui.SortDomain)
 	model.SetSortDescending(false)

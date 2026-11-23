@@ -330,7 +330,8 @@ Navigation:
 Filtering & View:
   /                 Enter fuzzy/substring search
   Esc               Clear search filter / cancel modal
-  s / S             Cycle sort column (RAM, CPU, Last Used, Domain, Title, Browser) / Reverse
+  s                 Toggle sort direction (most ⇄ least, A ⇄ Z), then advance column
+  S                 Invert current sort direction
   t                 Toggle special/internal tabs (chrome://*, about:*)
   u                 Toggle inline full URL column
 
