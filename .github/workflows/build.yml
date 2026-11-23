@@ -9,8 +9,12 @@ on:
 
 jobs:
   test:
-    name: Run Test Suite
-    runs-on: macos-latest
+    name: Run Test Suite (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -23,6 +27,15 @@ jobs:
 
       - name: Run Tests
         run: go test -v ./...
+
+      - name: Verify Windows Setup & Registry (Windows only)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          go run ./cmd/tabwrangler setup
+          reg query "HKCU\Software\Google\Chrome\NativeMessagingHosts\com.tabwrangler.bridge"
+          reg query "HKCU\Software\Microsoft\Edge\NativeMessagingHosts\com.tabwrangler.bridge"
+          reg query "HKCU\Software\Mozilla\NativeMessagingHosts\com.tabwrangler.bridge"
 
   build-matrix:
     name: Build Multi-Platform Binaries
