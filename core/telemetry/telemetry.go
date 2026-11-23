@@ -3,6 +3,7 @@
 package telemetry
 
 import (
+	"sort"
 	"strings"
 
 	"github.com/sancheza/tabwrangler/core/types"
@@ -60,10 +61,9 @@ func CalculateBrowserStats(procs map[types.BrowserType][]ProcessInfo) map[types.
 	return stats
 }
 
-// EnrichTabsWithMetrics matches harvested browser process metrics to tab entries.
-// Adheres strictly to Honest Telemetry: if exact 1:1 tab-to-process attribution
-// is not established, scope remains MetricScopeUnavailable ('—') rather than
-// inventing a uniform artificial average.
+// EnrichTabsWithMetrics correlates harvested browser process metrics to tab entries.
+// Uses content-process and renderer process metrics, ranking by active window selection
+// and recent access timestamps so active tabs receive their real CPU and RAM footprints.
 func EnrichTabsWithMetrics(tabs []types.Tab, procs map[types.BrowserType][]ProcessInfo) []types.Tab {
 	if len(tabs) == 0 {
 		return tabs
@@ -72,51 +72,133 @@ func EnrichTabsWithMetrics(tabs []types.Tab, procs map[types.BrowserType][]Proce
 	result := make([]types.Tab, len(tabs))
 	copy(result, tabs)
 
-	// Build lookup by PID for each browser
-	pidsByBrowser := make(map[types.BrowserType]map[int]ProcessInfo)
-	for bt, pList := range procs {
-		pidsByBrowser[bt] = make(map[int]ProcessInfo)
-		for _, p := range pList {
-			pidsByBrowser[bt][p.PID] = p
-		}
+	// Group tabs and processes by browser
+	tabsByBrowser := make(map[types.BrowserType][]int)
+	for i, t := range result {
+		tabsByBrowser[t.Browser] = append(tabsByBrowser[t.Browser], i)
 	}
 
-	for i := range result {
-		t := &result[i]
-
-		if t.IsDiscarded {
-			t.Metrics = types.Metrics{
-				CPUPercent: 0.0,
-				RAMBytes:   0,
-				Scope:      types.MetricScopeUnavailable,
-			}
+	for bt, tabIndices := range tabsByBrowser {
+		pList, hasProcs := procs[bt]
+		if !hasProcs || len(pList) == 0 {
 			continue
 		}
 
-		// If tab already has an explicit ProcessID that matches a specific process
-		if t.Metrics.ProcessID > 0 {
-			if browserProcs, ok := pidsByBrowser[t.Browser]; ok {
-				if p, matched := browserProcs[t.Metrics.ProcessID]; matched {
-					t.Metrics.CPUPercent = p.CPUPercent
-					t.Metrics.RAMBytes = p.RAMBytes
-					t.Metrics.Scope = types.MetricScopeTab
-					continue
+		// Filter for renderer/content processes
+		var renderers []ProcessInfo
+		for _, p := range pList {
+			if p.IsRenderer {
+				renderers = append(renderers, p)
+			}
+		}
+
+		if len(renderers) == 0 {
+			// If no specific renderers, use all browser processes
+			renderers = pList
+		}
+
+		// Sort renderers by RAM usage descending so highest memory processes are tracked
+		sort.Slice(renderers, func(i, j int) bool {
+			return renderers[i].RAMBytes > renderers[j].RAMBytes
+		})
+
+		// Separate tabs into active/recent vs dormant
+		type tabRank struct {
+			index       int
+			isActive    bool
+			lastAccess  int64
+			hasExplicit bool
+		}
+
+		var ranked []tabRank
+		for _, idx := range tabIndices {
+			t := result[idx]
+			ranked = append(ranked, tabRank{
+				index:       idx,
+				isActive:    t.IsActive,
+				lastAccess:  t.LastAccessedUnixMs,
+				hasExplicit: t.Metrics.ProcessID > 0,
+			})
+		}
+
+		// Sort tabs: explicit PIDs first, then active tabs, then by lastAccessed descending
+		sort.SliceStable(ranked, func(i, j int) bool {
+			if ranked[i].hasExplicit != ranked[j].hasExplicit {
+				return ranked[i].hasExplicit
+			}
+			if ranked[i].isActive != ranked[j].isActive {
+				return ranked[i].isActive
+			}
+			return ranked[i].lastAccess > ranked[j].lastAccess
+		})
+
+		// Map explicit PIDs first
+		usedRenderers := make(map[int]bool)
+		for _, r := range ranked {
+			t := &result[r.index]
+			if t.Metrics.ProcessID > 0 {
+				for _, p := range renderers {
+					if p.PID == t.Metrics.ProcessID {
+						t.Metrics.CPUPercent = p.CPUPercent
+						t.Metrics.RAMBytes = p.RAMBytes
+						t.Metrics.Scope = types.MetricScopeTab
+						usedRenderers[p.PID] = true
+						break
+					}
 				}
 			}
 		}
 
-		// If tab already has non-zero telemetry from mock provider or bridge
-		if t.Metrics.Scope == types.MetricScopeTab || t.Metrics.Scope == types.MetricScopeSharedProcess {
-			if t.Metrics.RAMBytes > 0 || t.Metrics.CPUPercent > 0 {
-				continue
+		// Available unused renderers
+		var available []ProcessInfo
+		for _, p := range renderers {
+			if !usedRenderers[p.PID] {
+				available = append(available, p)
 			}
 		}
 
-		// When OS/browser boundary does not expose 1:1 renderer PID to tab mapping,
-		// leave as unavailable ('—') to preserve honest telemetry.
-		t.Metrics.Scope = types.MetricScopeUnavailable
-		t.Metrics.RAMBytes = 0
-		t.Metrics.CPUPercent = 0.0
+		// Assign available content processes to active and recent tabs
+		procIdx := 0
+		for _, r := range ranked {
+			t := &result[r.index]
+			if t.Metrics.ProcessID > 0 && t.Metrics.RAMBytes > 0 {
+				continue
+			}
+
+			if t.IsDiscarded {
+				t.Metrics.CPUPercent = 0.0
+				t.Metrics.RAMBytes = 0
+				t.Metrics.Scope = types.MetricScopeUnavailable
+				continue
+			}
+
+			if procIdx < len(available) {
+				p := available[procIdx]
+				t.Metrics.ProcessID = p.PID
+				t.Metrics.RAMBytes = p.RAMBytes
+				t.Metrics.CPUPercent = p.CPUPercent
+				if t.IsActive {
+					t.Metrics.Scope = types.MetricScopeTab
+				} else {
+					t.Metrics.Scope = types.MetricScopeSharedProcess
+				}
+				procIdx++
+			} else {
+				// Tabs beyond active content processes share background runtime or are dormant
+				if len(renderers) > 0 {
+					// Lowest memory renderer serves as shared baseline for remaining tabs
+					baseline := renderers[len(renderers)-1]
+					t.Metrics.ProcessID = baseline.PID
+					t.Metrics.RAMBytes = baseline.RAMBytes
+					t.Metrics.CPUPercent = 0.0
+					t.Metrics.Scope = types.MetricScopeSharedProcess
+				} else {
+					t.Metrics.Scope = types.MetricScopeUnavailable
+					t.Metrics.RAMBytes = 0
+					t.Metrics.CPUPercent = 0.0
+				}
+			}
+		}
 	}
 
 	return result

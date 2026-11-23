@@ -40,10 +40,14 @@ func TestLiveCollectorFetch(t *testing.T) {
 	t.Logf("Firefox process tree: Total RAM = %s (%d bytes), Total CPU = %.2f%% across %d processes (%d renderers)",
 		tui.FormatBytes(ffStats.TotalRAMBytes), ffStats.TotalRAMBytes, ffStats.TotalCPUPercent, ffStats.ProcessCount, ffStats.RendererCount)
 
-	firefoxCount := 0
+	nonZeroRAM := 0
+	nonZeroCPU := 0
 	for _, tab := range tabs {
-		if tab.Browser == types.BrowserFirefox {
-			firefoxCount++
+		if tab.Metrics.RAMBytes > 0 {
+			nonZeroRAM++
+		}
+		if tab.Metrics.CPUPercent > 0 {
+			nonZeroCPU++
 		}
 	}
 
@@ -52,8 +56,8 @@ func TestLiveCollectorFetch(t *testing.T) {
 			i, tab.Title, tab.Metrics.CPUPercent, tab.FormattedCPU(), tab.Metrics.RAMBytes, tab.FormattedRAM(), tab.Metrics.Scope)
 	}
 
-	t.Logf("Discovered %d Firefox tabs on live system", firefoxCount)
-	if firefoxCount == 0 {
-		t.Errorf("Expected to discover live open Firefox tabs from sessionstore fallback, got 0")
+	t.Logf("Discovered %d Firefox tabs on live system (%d have RAM, %d have CPU)", len(tabs), nonZeroRAM, nonZeroCPU)
+	if nonZeroRAM == 0 {
+		t.Errorf("Expected live open Firefox tabs to have non-zero RAM values, got 0")
 	}
 }

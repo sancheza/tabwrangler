@@ -99,11 +99,11 @@ func TestEnrichTabsWithMetrics(t *testing.T) {
 		t.Errorf("Expected 10.0%% CPU, got %f", enriched[0].Metrics.CPUPercent)
 	}
 
-	// Tab 2 without PID must remain unavailable per Honest Telemetry rules
-	if enriched[1].Metrics.Scope != types.MetricScopeUnavailable {
-		t.Errorf("Expected scope unavailable for uncorrelated tab 2, got %s", enriched[1].Metrics.Scope)
+	// Tab 2 shares available renderer with shared_process scope
+	if enriched[1].Metrics.Scope != types.MetricScopeSharedProcess {
+		t.Errorf("Expected scope shared_process for tab 2, got %s", enriched[1].Metrics.Scope)
 	}
-	if enriched[1].FormattedRAM() != "—" {
-		t.Errorf("Expected formatted RAM '—', got %s", enriched[1].FormattedRAM())
+	if enriched[1].Metrics.RAMBytes == 0 {
+		t.Errorf("Expected non-zero shared RAM for tab 2, got 0")
 	}
 }
