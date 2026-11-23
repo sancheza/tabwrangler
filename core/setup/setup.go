@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 )
 
 const HostName = "com.tabwrangler.bridge"
@@ -30,7 +31,7 @@ type firefoxManifest struct {
 }
 
 // Run executes the setup process, creating manifest files and verifying permissions.
-func Run(binaryPath string) error {
+func Run(binaryPath string, openBrowser bool) error {
 	if binaryPath == "" {
 		var err error
 		binaryPath, err = os.Executable()
@@ -56,6 +57,16 @@ func Run(binaryPath string) error {
 			return err
 		}
 
+		// Copy manifest path to clipboard if pbcopy is available
+		manifestPath, _ := filepath.Abs(filepath.Join(filepath.Dir(binaryPath), "extension", "manifest.json"))
+		if _, err := os.Stat(manifestPath); err == nil {
+			pb := exec.Command("pbcopy")
+			pb.Stdin = strings.NewReader(manifestPath)
+			if pb.Run() == nil {
+				fmt.Printf("\033[32m[OK]\033[0m Copied extension manifest path to macOS clipboard: %s\n", manifestPath)
+			}
+		}
+
 		// Verify Safari AppleScript automation permission
 		fmt.Printf("[INFO] Verifying macOS Safari Automation permissions...\n")
 		cmd := exec.Command("osascript", "-e", `tell application "Safari" to return name`)
@@ -64,6 +75,11 @@ func Run(binaryPath string) error {
 			fmt.Printf("\033[38;5;214m[WARNING]\033[0m Safari automation check failed or requires permission grant in macOS System Settings -> Privacy & Security -> Automation\n")
 		} else {
 			fmt.Printf("\033[32m[OK]\033[0m Safari automation verified: %s\n", string(out))
+		}
+
+		if openBrowser {
+			fmt.Printf("[INFO] Opening Firefox add-on debugging page...\n")
+			_ = exec.Command("open", "-a", "Firefox", "about:debugging#/runtime/this-firefox").Run()
 		}
 	} else if runtime.GOOS == "windows" {
 		appData := os.Getenv("APPDATA")

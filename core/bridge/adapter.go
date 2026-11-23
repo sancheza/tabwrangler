@@ -109,7 +109,7 @@ func (a *ExtensionAdapter) listTabsViaBridge(ctx context.Context) ([]types.Tab, 
 // FocusTab instructs the extension to activate the tab and focus the window.
 func (a *ExtensionAdapter) FocusTab(ctx context.Context, tab types.Tab) error {
 	if a.server == nil || !a.server.IsBrowserConnected(a.browser) {
-		return fmt.Errorf("companion extension not connected for %s (load extension/ via about:debugging or chrome://extensions to control tabs)", a.browser)
+		return fmt.Errorf("%s extension not connected (load extension/ via about:debugging)", a.browser)
 	}
 	tabID, err := strconv.Atoi(tab.TabID)
 	if err != nil {

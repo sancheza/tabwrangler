@@ -296,15 +296,16 @@ func (m Model) renderDetailFooter() string {
 }
 
 func (m Model) renderKeybindBar() string {
-	shortcuts := "Enter/f: Focus  |  d: Discard  |  c: Close  |  Space: Select  |  a/A: All/None  |  s: Sort  |  /: Filter  |  r: Refresh  |  ?: Help  |  q: Quit"
 	if m.toast != "" {
 		toastStyled := StyleToast.Render(m.toast)
 		if m.toastIsWarning {
 			toastStyled = StyleToastWarning.Render(m.toast)
 		}
-		shortcuts = toastStyled + "  " + shortcuts
+		bar := toastStyled + "  " + lipgloss.NewStyle().Faint(true).Render("(Press 'i' for extension setup guide, '?' for help)")
+		return StyleKeybindBar.Width(m.width).Render(bar)
 	}
 
+	shortcuts := "Enter/f: Focus  |  d: Discard  |  c: Close  |  Space: Select  |  a/A: All/None  |  s: Sort  |  /: Filter  |  r: Refresh  |  ?: Help  |  q: Quit"
 	return StyleKeybindBar.Width(m.width).Render(shortcuts)
 }
 
@@ -367,8 +368,13 @@ func (m Model) renderDiagnosticsModal() string {
 	}
 
 	items = append(items, "")
+	items = append(items, lipgloss.NewStyle().Bold(true).Render("To enable interactive tab actions (Focus / Discard / Close):"))
+	items = append(items, "  • Firefox: Open about:debugging#/runtime/this-firefox -> click 'Load Temporary Add-on' -> select extension/manifest.json")
+	items = append(items, "  • Chrome:  Open chrome://extensions -> enable 'Developer mode' -> 'Load unpacked' -> select extension/")
+	items = append(items, "  • Safari:  Automated natively via macOS AppleScript (Focus and Close work out-of-the-box)")
+	items = append(items, "")
 	items = append(items, "IPC Bridge Socket: "+lipgloss.NewStyle().Faint(true).Render("/tmp/tabwrangler-$UID.sock"))
-	items = append(items, "Extension: MV3 WebExtension 'TabWrangler Companion'")
+	items = append(items, "Extension Code: 100% first-party Manifest V3 (no third-party dependencies or external requests)")
 	items = append(items, "")
 	items = append(items, "Press 'Esc' or 'i' to close.")
 

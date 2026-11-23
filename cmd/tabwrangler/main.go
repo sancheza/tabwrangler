@@ -76,7 +76,13 @@ func main() {
 		subcommand := os.Args[1]
 		switch subcommand {
 		case "setup":
-			if err := setup.Run(""); err != nil {
+			openBrowser := false
+			for _, arg := range os.Args[2:] {
+				if arg == "--open" || arg == "-o" {
+					openBrowser = true
+				}
+			}
+			if err := setup.Run("", openBrowser); err != nil {
 				fmt.Fprintf(os.Stderr, "Error during setup: %v\n", err)
 				os.Exit(1)
 			}
