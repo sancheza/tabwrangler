@@ -330,7 +330,7 @@ Navigation:
 Filtering & View:
   /                 Enter fuzzy/substring search
   Esc               Clear search filter / cancel modal
-  s / S             Cycle sort column (RAM, CPU, Last Used, Browser, Title) / Reverse
+  s / S             Cycle sort column (RAM, CPU, Last Used, Domain, Title, Browser) / Reverse
   t                 Toggle special/internal tabs (chrome://*, about:*)
   u                 Toggle inline full URL column
 

@@ -72,4 +72,21 @@ func TestTUIModelFilteringAndSorting(t *testing.T) {
 	if ram != 1000*1024*1024 {
 		t.Fatalf("Expected 1000MB total RAM, got %d", ram)
 	}
+
+	// Test Sort by Domain ascending
+	model.SetSortColumn(tui.SortDomain)
+	model.SetSortDescending(false)
+	model.FilterAndSortTabs()
+	domainSorted := model.SelectedOrHighlightedTabs()
+	if len(domainSorted) == 0 || domainSorted[0].Domain != "alpha.com" {
+		t.Fatalf("Expected 'alpha.com' first when sorted by Domain asc, got %v", domainSorted)
+	}
+
+	// Test Sort by Domain descending
+	model.SetSortDescending(true)
+	model.FilterAndSortTabs()
+	domainSortedDesc := model.SelectedOrHighlightedTabs()
+	if len(domainSortedDesc) == 0 || domainSortedDesc[0].Domain != "beta.com" {
+		t.Fatalf("Expected 'beta.com' first when sorted by Domain desc, got %v", domainSortedDesc)
+	}
 }

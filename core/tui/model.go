@@ -22,8 +22,9 @@ const (
 	SortRAM      SortColumn = "RAM"
 	SortCPU      SortColumn = "CPU"
 	SortLastUsed SortColumn = "Last Used"
-	SortBrowser  SortColumn = "Browser"
+	SortDomain   SortColumn = "Domain"
 	SortTitle    SortColumn = "Title"
+	SortBrowser  SortColumn = "Browser"
 )
 
 // RefreshDoneMsg is emitted when an on-demand tab refresh finishes.
@@ -201,10 +202,12 @@ func (m *Model) FilterAndSortTabs() {
 			less = a.Metrics.CPUPercent < b.Metrics.CPUPercent
 		case SortLastUsed:
 			less = a.LastAccessedUnixMs < b.LastAccessedUnixMs
-		case SortBrowser:
-			less = a.Browser < b.Browser
+		case SortDomain:
+			less = strings.ToLower(a.Domain) < strings.ToLower(b.Domain)
 		case SortTitle:
 			less = strings.ToLower(a.Title) < strings.ToLower(b.Title)
+		case SortBrowser:
+			less = a.Browser < b.Browser
 		default:
 			less = a.Metrics.RAMBytes < b.Metrics.RAMBytes
 		}
@@ -279,6 +282,21 @@ func (m *Model) AggregateStats(b types.BrowserType) (int, uint64) {
 		}
 	}
 	return count, ram
+}
+
+// SelectedSortColumn returns the currently active sorting column.
+func (m *Model) SelectedSortColumn() SortColumn {
+	return m.sortCol
+}
+
+// SetSortColumn sets the active sorting column.
+func (m *Model) SetSortColumn(c SortColumn) {
+	m.sortCol = c
+}
+
+// SetSortDescending configures sort order direction.
+func (m *Model) SetSortDescending(desc bool) {
+	m.sortDesc = desc
 }
 
 // FormatBytes formats byte quantities into readable strings.

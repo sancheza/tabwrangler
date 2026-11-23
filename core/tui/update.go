@@ -279,7 +279,7 @@ func (m *Model) cycleBrowser(forward bool) {
 }
 
 func (m *Model) cycleSortColumn() {
-	cols := []SortColumn{SortRAM, SortCPU, SortLastUsed, SortBrowser, SortTitle}
+	cols := []SortColumn{SortRAM, SortCPU, SortLastUsed, SortDomain, SortTitle, SortBrowser}
 	for i, c := range cols {
 		if c == m.sortCol {
 			m.sortCol = cols[(i+1)%len(cols)]
