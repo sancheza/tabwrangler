@@ -180,7 +180,7 @@ Execute the binary from your terminal:
 
 Expected interface:
 ```text
-  TabWrangler v1.0.17                    Tabs: 24 (Filtered: 24)  Selected: 0  Sort: Domain ↑
+  TabWrangler v1.0.18                    Tabs: 24 (Filtered: 24)  Selected: 0  Sort: Domain ↑
   [0] ALL (24)   [1] CHROME (14)   [2] FIREFOX (10)   [3] SAFARI (0)
 
   BROWSER   WINDOW   TAB   TITLE                                  DOMAIN             RAM       CPU      LAST USED
@@ -274,7 +274,7 @@ tabwrangler bridge
 | Flag | Description |
 |:--- |:--- |
 | `-h`, `--help` | Show usage screen with full keyboard shortcut list and exit |
-| `-v`, `--version` | Print application version (`1.0.17`) and exit |
+| `-v`, `--version` | Print application version (`1.0.18`) and exit |
 | `-u`, `--update` | Download and install the latest release from GitHub. With `--dry-run`, check only |
 | `--browser <name>` | Pre-filter initial view: `all`, `chrome`, `firefox`, `safari` (default: `all`) |
 | `--dry-run` | Preview tab focus, discard, and close mutations in terminal without modifying browser state |
@@ -348,7 +348,7 @@ tabwrangler --mock
 | `U` | Display | Toggle full URL column visibility |
 | `r` | Lifecycle | Refresh tab snapshot and host process telemetry on demand |
 | `?` | Helpers | Toggle in-app help modal explaining concepts and shortcuts |
-| `i` | Helpers | Toggle in-app diagnostics modal and bridge connection status |
+| `i` | Helpers | Toggle in-app diagnostics modal: bridge connection status and the version of each companion extension |
 | `q` / `Ctrl+C` | Lifecycle | Quit TabWrangler |
 
 ---

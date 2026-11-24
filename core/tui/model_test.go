@@ -186,3 +186,29 @@ func TestRefreshDoneIgnoresStaleResult(t *testing.T) {
 		t.Fatalf("unnumbered refresh should apply: have %d tabs, want 0", got)
 	}
 }
+
+func TestExtensionStatusText(t *testing.T) {
+	cases := []struct {
+		name      string
+		connected bool
+		version   string
+		contains  string
+		absent    string
+	}{
+		{"not connected", false, "", "not connected", ""},
+		{"not connected ignores version", false, "1.0.17", "not connected", "v1.0.17"},
+		{"no version reported", true, "", "version not reported", ""},
+		{"older extension", true, "1.0.4", "older than TabWrangler v1.0.17", ""},
+		{"matching version", true, "1.0.17", "v1.0.17", "older"},
+		{"newer extension", true, "1.0.18", "v1.0.18", "older"},
+	}
+	for _, c := range cases {
+		got := extensionStatusText("1.0.17", c.connected, c.version)
+		if !strings.Contains(got, c.contains) {
+			t.Errorf("%s: %q does not contain %q", c.name, got, c.contains)
+		}
+		if c.absent != "" && strings.Contains(got, c.absent) {
+			t.Errorf("%s: %q should not contain %q", c.name, got, c.absent)
+		}
+	}
+}

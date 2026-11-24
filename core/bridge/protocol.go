@@ -32,6 +32,7 @@ type Request struct {
 	URL      string            `json:"url,omitempty"`
 	Params   map[string]any    `json:"params,omitempty"`
 	Token    string            `json:"token,omitempty"`
+	Version  string            `json:"version,omitempty"` // extension version, sent when registering
 }
 
 // Response encapsulates the result from a bridge RPC command.

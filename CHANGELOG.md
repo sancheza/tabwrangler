@@ -2,6 +2,16 @@
 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follow [Semantic Versioning](https://semver.org/).
 
+## 1.0.18 - 2026-11-24
+
+### Added
+
+- The diagnostics screen (`i`) shows each browser extension's version and warns when it is older than TabWrangler or does not report a version, with the fix. The extension sends its version when it registers, so reload the extension after updating.
+
+### Fixed
+
+- The diagnostics screen shows the real bridge address on every platform (it showed the macOS/Linux socket path on Windows).
+
 ## 1.0.17 - 2026-11-24
 
 ### Added

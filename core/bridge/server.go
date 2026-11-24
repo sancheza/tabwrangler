@@ -41,6 +41,7 @@ type Server struct {
 	startErr    error
 	onRegister  func(types.BrowserType)
 	token       string
+	extVersions map[types.BrowserType]string
 }
 
 // NewServer initializes a new IPC bridge server.
@@ -54,6 +55,7 @@ func NewServerWithPath(sockPath string) *Server {
 		sockPath:    sockPath,
 		connections: make(map[types.BrowserType]net.Conn),
 		pending:     make(map[string]chan *Response),
+		extVersions: make(map[types.BrowserType]string),
 	}
 }
 
@@ -189,6 +191,7 @@ func (s *Server) handleConn(conn net.Conn) {
 		_ = old.Close()
 	}
 	s.connections[browser] = conn
+	s.extVersions[browser] = regMsg.Version
 	cb := s.onRegister
 	s.mu.Unlock()
 	if cb == nil {
@@ -204,6 +207,7 @@ func (s *Server) handleConn(conn net.Conn) {
 		s.mu.Lock()
 		if s.connections[browser] == conn {
 			delete(s.connections, browser)
+			delete(s.extVersions, browser)
 		}
 		s.mu.Unlock()
 		_ = conn.Close()
@@ -247,6 +251,18 @@ func (s *Server) IsBrowserConnected(b types.BrowserType) bool {
 	defer s.mu.RUnlock()
 	_, ok := s.connections[b]
 	return ok
+}
+
+// ExtensionVersion returns the version the browser's companion extension reported when it
+// registered. The version is empty for extensions that do not report one. The second value is
+// false when the browser is not connected.
+func (s *Server) ExtensionVersion(b types.BrowserType) (string, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if _, ok := s.connections[b]; !ok {
+		return "", false
+	}
+	return s.extVersions[b], true
 }
 
 // StartError returns any error encountered during server socket listen.

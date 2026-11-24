@@ -43,9 +43,14 @@ function connectNative() {
     // Send initial registration handshake
     const bType = detectBrowser();
     console.log("[TabWrangler] Sending registration handshake for:", bType);
+    let extVersion = "";
+    try {
+      extVersion = api.getManifest().version || "";
+    } catch (e) {}
     nativePort.postMessage({
       action: "register",
-      browser: bType
+      browser: bType,
+      version: extVersion
     });
   } catch (err) {
     console.error("[TabWrangler] Exception in connectNative:", err);

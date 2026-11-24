@@ -7,7 +7,9 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	"github.com/sancheza/tabwrangler/core/bridge"
 	"github.com/sancheza/tabwrangler/core/types"
+	"github.com/sancheza/tabwrangler/core/update"
 )
 
 // View renders the terminal user interface according to Bubble Tea v2 contract.
@@ -383,6 +385,7 @@ func (m Model) renderDiagnosticsModal() string {
 
 		items = append(items, fmt.Sprintf("• %s: %s | Tabs: %d | Host Footprint: %s%s",
 			strings.Title(string(b)), status, count, FormatBytes(ram), procInfo))
+		items = append(items, "    Extension: "+m.extensionStatus(b))
 	}
 
 	items = append(items, "")
@@ -391,7 +394,7 @@ func (m Model) renderDiagnosticsModal() string {
 	items = append(items, "  • Chrome:  Open chrome://extensions -> enable 'Developer mode' -> 'Load unpacked' -> select extension/")
 	items = append(items, "  • Safari:  Automated natively via macOS AppleScript (Focus and Close work out-of-the-box)")
 	items = append(items, "")
-	items = append(items, "IPC Bridge Socket: "+lipgloss.NewStyle().Faint(true).Render("/tmp/tabwrangler-$UID.sock"))
+	items = append(items, "IPC Bridge: "+lipgloss.NewStyle().Faint(true).Render(bridge.SocketPath()))
 	items = append(items, "Extension Code: 100% first-party Manifest V3 (no third-party dependencies or external requests)")
 	items = append(items, "")
 	items = append(items, "Press 'Esc' or 'i' to close.")
@@ -424,4 +427,32 @@ func max(a, b int) int {
 		return a
 	}
 	return b
+}
+
+// extensionStatus describes the companion extension for a browser: connected or not, its version,
+// and whether it is older than this TabWrangler.
+func (m Model) extensionStatus(b types.BrowserType) string {
+	if b == types.BrowserSafari {
+		return "not needed (Safari is controlled through macOS automation)"
+	}
+	connected, version := false, ""
+	if a, ok := m.collector.GetAdapter(b); ok {
+		if ext, ok := a.(interface{ ExtensionInfo() (bool, string) }); ok {
+			connected, version = ext.ExtensionInfo()
+		}
+	}
+	return extensionStatusText(types.Version, connected, version)
+}
+
+// extensionStatusText formats an extension's connection state and version against the app version.
+func extensionStatusText(appVersion string, connected bool, extVersion string) string {
+	switch {
+	case !connected:
+		return "\033[38;5;214mnot connected\033[0m (load or reload the extension in the browser)"
+	case extVersion == "":
+		return "\033[38;5;214mversion not reported\033[0m: older than v" + appVersion + "; update the extension folder and reload the extension"
+	case update.Compare(extVersion, appVersion) < 0:
+		return "\033[38;5;214mv" + extVersion + "\033[0m: older than TabWrangler v" + appVersion + "; update the extension folder and reload the extension"
+	}
+	return "\033[32mv" + extVersion + "\033[0m"
 }

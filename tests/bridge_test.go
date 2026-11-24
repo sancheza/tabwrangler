@@ -324,3 +324,48 @@ func TestBridgeHostSurvivesTabWranglerRestart(t *testing.T) {
 		t.Fatal("Expected the host to exit after the browser closed its pipe")
 	}
 }
+
+func TestBridgeServerRecordsExtensionVersion(t *testing.T) {
+	testSock := filepath.Join(os.TempDir(), fmt.Sprintf("tabwrangler-test-%d.sock", time.Now().UnixNano()))
+	server := bridge.NewServerWithPath(testSock)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	if err := server.Start(ctx); err != nil {
+		t.Fatalf("Failed starting bridge server: %v", err)
+	}
+	defer server.Close()
+
+	if _, connected := server.ExtensionVersion(types.BrowserChrome); connected {
+		t.Fatal("Chrome should not be connected before registering")
+	}
+	token, _ := bridge.ReadToken(testSock)
+	register := func(browser, version string) net.Conn {
+		conn, err := net.Dial("unix", testSock)
+		if err != nil {
+			t.Fatalf("Failed dialing bridge socket: %v", err)
+		}
+		msg := fmt.Sprintf(`{"action":"register","browser":%q,"token":%q`, browser, token)
+		if version != "" {
+			msg += fmt.Sprintf(`,"version":%q`, version)
+		}
+		_, _ = conn.Write([]byte(msg + "}\n"))
+		time.Sleep(60 * time.Millisecond)
+		return conn
+	}
+
+	chrome := register("chrome", "1.0.17")
+	if v, ok := server.ExtensionVersion(types.BrowserChrome); !ok || v != "1.0.17" {
+		t.Errorf("Chrome extension version = %q, connected=%v; want 1.0.17, true", v, ok)
+	}
+	firefox := register("firefox", "") // an older extension that reports no version
+	if v, ok := server.ExtensionVersion(types.BrowserFirefox); !ok || v != "" {
+		t.Errorf("Firefox extension version = %q, connected=%v; want empty, true", v, ok)
+	}
+
+	chrome.Close()
+	time.Sleep(100 * time.Millisecond)
+	if _, ok := server.ExtensionVersion(types.BrowserChrome); ok {
+		t.Error("Chrome should be disconnected after its connection closed")
+	}
+	firefox.Close()
+}

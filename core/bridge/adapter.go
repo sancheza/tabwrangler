@@ -42,6 +42,15 @@ func (a *ExtensionAdapter) IsAvailable() bool {
 	return false
 }
 
+// ExtensionInfo reports whether the companion extension is connected and the version it reported.
+func (a *ExtensionAdapter) ExtensionInfo() (connected bool, version string) {
+	if a.server == nil {
+		return false, ""
+	}
+	version, connected = a.server.ExtensionVersion(a.browser)
+	return connected, version
+}
+
 // ServerError returns any background bridge server start error.
 func (a *ExtensionAdapter) ServerError() error {
 	if a.server != nil {
