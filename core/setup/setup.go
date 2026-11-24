@@ -60,6 +60,8 @@ func Run(binaryPath string, openBrowser bool, customChromeID string) error {
 		}
 	}
 	binaryPath, _ = filepath.Abs(binaryPath)
+	var loaded []installedExtension // extensions a browser has already loaded
+	var installedExtDir string      // where setup installed the extension files
 	if runtime.GOOS == "windows" && filepath.Ext(binaryPath) == "" {
 		binaryPath += ".exe"
 	}
@@ -172,8 +174,11 @@ func Run(binaryPath string, openBrowser bool, customChromeID string) error {
 		firefoxDir := filepath.Join(appData, "Mozilla", "NativeMessagingHosts")
 
 		// Scan for existing extension IDs in browser user profiles
-		discovered := discoverInstalledExtensionIDs(localAppData)
-		for _, dID := range discovered {
+		loaded = discoverInstalledExtensions(localAppData)
+		if fi, err := os.Stat(destExtensionDir); err == nil && fi.IsDir() {
+			installedExtDir = destExtensionDir
+		}
+		for _, dID := range extensionIDs(loaded) {
 			found := false
 			for _, existing := range allIDs {
 				if existing == dID {
@@ -238,18 +243,7 @@ func Run(binaryPath string, openBrowser bool, customChromeID string) error {
 	}
 
 	fmt.Printf("\033[32m[OK]\033[0m Setup complete!\n\n")
-	fmt.Printf("Next step: Load the companion extension into your browser:\n\n")
-	fmt.Printf("  • Chrome / Edge / Brave:\n")
-	fmt.Printf("      1. Navigate to chrome://extensions\n")
-	fmt.Printf("      2. Enable 'Developer mode' (top right)\n")
-	fmt.Printf("      3. Click 'Load unpacked' and select the extension/ directory\n\n")
-	fmt.Printf("  • Firefox:\n")
-	fmt.Printf("      1. Navigate to about:debugging#/runtime/this-firefox\n")
-	fmt.Printf("      2. Click 'Load Temporary Add-on...'\n")
-	fmt.Printf("      3. Select extension/manifest.json (Do NOT use 'Install Add-on From File' in about:addons)\n\n")
-	fmt.Printf("  • Safari (macOS):\n")
-	fmt.Printf("      Automated natively out-of-the-box. No extension required.\n\n")
-	fmt.Printf("Then run 'tabwrangler' to launch.\n")
+	fmt.Print(nextSteps(loaded, installedExtDir))
 	return nil
 }
 
@@ -364,12 +358,17 @@ func copyDir(src, dst string) error {
 	})
 }
 
-// to automatically discover unpacked extension IDs matching TabWrangler.
-// discoverInstalledExtensionIDs scans Chromium user profile directories (Chrome, Edge, Brave)
-// across all profiles (Default, Profile 1, custom profile names with spaces)
-// to automatically discover unpacked extension IDs matching TabWrangler.
-func discoverInstalledExtensionIDs(localAppData string) []string {
-	var ids []string
+// installedExtension is a TabWrangler extension that a Chromium browser has loaded.
+type installedExtension struct {
+	ID   string
+	Path string // folder the browser loaded it from
+}
+
+// discoverInstalledExtensions scans Chromium user profile directories (Chrome, Edge, Brave)
+// across all profiles (Default, Profile 1, custom profile names with spaces) for loaded
+// TabWrangler extensions, and reports each extension's ID and the folder it was loaded from.
+func discoverInstalledExtensions(localAppData string) []installedExtension {
+	var found []installedExtension
 	searchRoots := []string{
 		filepath.Join(localAppData, "Google", "Chrome", "User Data"),
 		filepath.Join(localAppData, "Microsoft", "Edge", "User Data"),
@@ -403,13 +402,66 @@ func discoverInstalledExtensionIDs(localAppData string) []string {
 				for extID, setting := range rootJSON.Extensions.Settings {
 					if strings.Contains(strings.ToLower(setting.Manifest.Name), "tabwrangler") ||
 						strings.Contains(strings.ToLower(setting.Path), "tabwrangler") {
-						ids = append(ids, extID)
+						found = append(found, installedExtension{ID: extID, Path: setting.Path})
 					}
 				}
 			}
 		}
 	}
-	return ids
+	return found
+}
+
+// samePath reports whether two folder paths name the same folder (Windows paths ignore case).
+func samePath(a, b string) bool {
+	return strings.EqualFold(filepath.Clean(a), filepath.Clean(b))
+}
+
+// nextSteps returns the closing instructions of setup. When a browser has already loaded the
+// extension, it says to reload it (or where the new files are, if the browser loaded another
+// folder); otherwise it gives the first-time loading steps.
+func nextSteps(installed []installedExtension, extDir string) string {
+	var b strings.Builder
+	if len(installed) == 0 || extDir == "" {
+		b.WriteString("Next step: Load the companion extension into your browser:\n\n")
+		b.WriteString("  • Chrome / Edge / Brave:\n")
+		b.WriteString("      1. Navigate to chrome://extensions\n")
+		b.WriteString("      2. Enable 'Developer mode' (top right)\n")
+		b.WriteString("      3. Click 'Load unpacked' and select the extension/ directory\n\n")
+		b.WriteString("  • Firefox:\n")
+		b.WriteString("      1. Navigate to about:debugging#/runtime/this-firefox\n")
+		b.WriteString("      2. Click 'Load Temporary Add-on...'\n")
+		b.WriteString("      3. Select extension/manifest.json (Do NOT use 'Install Add-on From File' in about:addons)\n\n")
+		b.WriteString("  • Safari (macOS):\n")
+		b.WriteString("      Automated natively out-of-the-box. No extension required.\n\n")
+		b.WriteString("Then run 'tabwrangler' to launch.\n")
+		return b.String()
+	}
+
+	var elsewhere []string
+	seen := map[string]bool{}
+	for _, ext := range installed {
+		if !samePath(ext.Path, extDir) && !seen[ext.Path] {
+			seen[ext.Path] = true
+			elsewhere = append(elsewhere, ext.Path)
+		}
+	}
+	if len(elsewhere) == 0 {
+		b.WriteString("The companion extension is already loaded from " + extDir + ".\n")
+		b.WriteString("Reload it so the browser uses the new files:\n\n")
+		b.WriteString("  • Chrome / Edge / Brave: open chrome://extensions and click the Reload button on 'TabWrangler Companion'.\n")
+		b.WriteString("  • Firefox: open about:debugging#/runtime/this-firefox and click 'Reload' on 'TabWrangler Companion'.\n\n")
+		b.WriteString("Press 'i' in TabWrangler to confirm the extension version.\n")
+		return b.String()
+	}
+	b.WriteString("Setup installed the new extension files in " + extDir + ".\n")
+	b.WriteString("Your browser loaded the extension from a different folder, which setup does not change:\n")
+	for _, p := range elsewhere {
+		b.WriteString("  • " + p + "\n")
+	}
+	b.WriteString("\nUse the new files in one of two ways:\n")
+	b.WriteString("  1. Copy the contents of " + extDir + " over that folder, then click Reload on 'TabWrangler Companion' in chrome://extensions.\n")
+	b.WriteString("  2. In chrome://extensions, remove 'TabWrangler Companion', click 'Load unpacked', and select " + extDir + ".\n")
+	return b.String()
 }
 
 // InstallBinary copies the executable at src to dst, replacing any existing file.
@@ -436,4 +488,13 @@ func InstallBinary(src, dst string) error {
 	}
 	_ = os.Remove(old)
 	return nil
+}
+
+// extensionIDs lists the IDs of the given extensions.
+func extensionIDs(exts []installedExtension) []string {
+	var ids []string
+	for _, e := range exts {
+		ids = append(ids, e.ID)
+	}
+	return ids
 }

@@ -2,8 +2,10 @@ package setup
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -142,5 +144,61 @@ func TestInstallBinaryMissingSource(t *testing.T) {
 	dir := t.TempDir()
 	if err := InstallBinary(filepath.Join(dir, "nope.exe"), filepath.Join(dir, "dst.exe")); err == nil {
 		t.Fatal("expected an error for a missing source file")
+	}
+}
+
+func TestNextStepsFirstInstallShowsLoadUnpacked(t *testing.T) {
+	got := nextSteps(nil, "")
+	if !strings.Contains(got, "Load unpacked") || !strings.Contains(got, "Load Temporary Add-on") {
+		t.Errorf("first-install steps should explain loading the extension:\n%s", got)
+	}
+	// An extension folder with nothing loaded yet is still a first install.
+	if got := nextSteps(nil, filepath.Join("x", "extension")); !strings.Contains(got, "Load unpacked") {
+		t.Errorf("nothing loaded yet should show the loading steps:\n%s", got)
+	}
+}
+
+func TestNextStepsUpdateSaysReload(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "TabWrangler", "extension")
+	loaded := []installedExtension{{ID: "abc", Path: dir}, {ID: "abc", Path: dir}}
+	got := nextSteps(loaded, dir)
+	if strings.Contains(got, "Load unpacked") {
+		t.Errorf("an update must not ask to load the extension again:\n%s", got)
+	}
+	for _, want := range []string{"Reload", "chrome://extensions", "about:debugging", dir} {
+		if !strings.Contains(got, want) {
+			t.Errorf("update steps should mention %q:\n%s", want, got)
+		}
+	}
+}
+
+func TestNextStepsUpdateWhenLoadedFromAnotherFolder(t *testing.T) {
+	base := t.TempDir()
+	installed := filepath.Join(base, "TabWrangler", "extension")
+	elsewhere := filepath.Join(base, "Downloads", "tabwrangler", "extension")
+	got := nextSteps([]installedExtension{{ID: "abc", Path: elsewhere}}, installed)
+	for _, want := range []string{elsewhere, installed, "different folder", "Copy the contents"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("steps should mention %q:\n%s", want, got)
+		}
+	}
+}
+
+func TestDiscoverInstalledExtensionsReadsPathFromPreferences(t *testing.T) {
+	local := t.TempDir()
+	profile := filepath.Join(local, "Google", "Chrome", "User Data", "Profile 1")
+	if err := os.MkdirAll(profile, 0755); err != nil {
+		t.Fatal(err)
+	}
+	extPath := filepath.Join(local, "TabWrangler", "extension")
+	prefs := fmt.Sprintf(`{"extensions":{"settings":{
+		"aaaa":{"manifest":{"name":"TabWrangler Companion"},"path":%q},
+		"bbbb":{"manifest":{"name":"Some Other Extension"},"path":"C:\\other"}}}}`, extPath)
+	if err := os.WriteFile(filepath.Join(profile, "Preferences"), []byte(prefs), 0600); err != nil {
+		t.Fatal(err)
+	}
+	got := discoverInstalledExtensions(local)
+	if len(got) != 1 || got[0].ID != "aaaa" || got[0].Path != extPath {
+		t.Fatalf("discoverInstalledExtensions = %+v; want the TabWrangler extension with its path", got)
 	}
 }

@@ -180,7 +180,7 @@ Execute the binary from your terminal:
 
 Expected interface:
 ```text
-  TabWrangler v1.0.21                    Tabs: 24 (Filtered: 24)  Selected: 0  Sort: Domain ↑
+  TabWrangler v1.0.22                    Tabs: 24 (Filtered: 24)  Selected: 0  Sort: Domain ↑
   [0] ALL (24)   [1] CHROME (14)   [2] FIREFOX (10)   [3] SAFARI (0)
 
   BROWSER   WINDOW   TAB   TITLE                                  DOMAIN             RAM       CPU      LAST USED
@@ -256,6 +256,11 @@ When an upgrade updates the companion WebExtension in `extension/`:
 - **Firefox:** Open `about:debugging#/runtime/this-firefox` and click **Reload** under TabWrangler Companion.
 - **Safari:** No action required; native automation updates with the CLI binary.
 
+> [!NOTE]
+> **Windows:** `tabwrangler --update` also replaces the extension files in `%LOCALAPPDATA%\TabWrangler\extension`. If Chrome loaded the extension from that folder, **Reload** is all it needs. If Chrome loaded it from another folder, the update says so and names both folders.
+> **macOS / Linux:** `tabwrangler --update` replaces the program only. Update your extension folder to the same release (for example `git pull`), then click **Reload**.
+> Press `i` in TabWrangler to see each extension's version.
+
 ---
 
 ## 4. CLI Usage & Flags
@@ -274,7 +279,7 @@ tabwrangler bridge
 | Flag | Description |
 |:--- |:--- |
 | `-h`, `--help` | Show usage screen with full keyboard shortcut list and exit |
-| `-v`, `--version` | Print application version (`1.0.21`) and exit |
+| `-v`, `--version` | Print application version (`1.0.22`) and exit |
 | `-u`, `--update` | Download and install the latest release from GitHub. With `--dry-run`, check only |
 | `--browser <name>` | Pre-filter initial view: `all`, `chrome`, `firefox`, `safari` (default: `all`) |
 | `--dry-run` | Preview tab focus, discard, and close mutations in terminal without modifying browser state |

@@ -347,7 +347,7 @@ func installUnix(src, exePath, latest string, u *Updater) error {
 		return fmt.Errorf("could not replace %s: %w", target, err)
 	}
 	u.printf("[OK] Updated %s to %s.\n", target, latest)
-	u.printf("If the release notes mention companion extension changes, reload the extension in your browser.\n")
+	u.printf("This updated the program only. If the release notes mention extension changes, update your extension folder to the same release and click Reload on it in chrome://extensions.\n")
 	return nil
 }
 

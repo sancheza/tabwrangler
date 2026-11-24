@@ -2,6 +2,13 @@
 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follow [Semantic Versioning](https://semver.org/).
 
+## 1.0.22 - 2026-11-24
+
+### Fixed
+
+- Windows: after an update, `setup` no longer asks you to "Load unpacked". When a browser already has the extension loaded from the installed folder, it says to click Reload on it. When the browser loaded it from a different folder, it names both folders and gives two ways to use the new files. First-time installs still get the loading steps.
+- On macOS and Linux, the update message says that only the program was updated and the extension folder must be updated separately.
+
 ## 1.0.21 - 2026-11-24
 
 ### Changed
