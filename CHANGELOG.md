@@ -10,6 +10,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follo
 - The IPC socket is created with owner-only permissions from the start (umask `0177` around `listen`).
 - The diagnostic log no longer records tab titles, URLs, or message contents. Log files are created with mode `0600`.
 
+### License
+
+- Changed from MIT to PolyForm Noncommercial 1.0.0. Commercial use requires a separate license.
+
 ### Documentation
 
 - Added `SECURITY.md`, `CONTRIBUTING.md`, and this changelog.

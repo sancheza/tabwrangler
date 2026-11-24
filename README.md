@@ -361,4 +361,13 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). Release history is in [CHANGELOG.md](CHA
 
 ## 9. License
 
-See [LICENSE](LICENSE).
+[PolyForm Noncommercial License 1.0.0](LICENSE).
+
+| Use | Allowed |
+|:--- |:--- |
+| Personal use, hobby projects, research, education | Yes |
+| Use by charities, schools, and public safety or government organizations | Yes |
+| Modify and share for any noncommercial purpose | Yes, with the license text and the `Required Notice` line |
+| Use in or for a commercial product, service, or business | Requires a separate commercial license |
+
+For a commercial license, open an issue titled "Commercial license" at <https://github.com/sancheza/tabwrangler/issues>.

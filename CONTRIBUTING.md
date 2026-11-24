@@ -57,6 +57,10 @@ ok  	github.com/sancheza/tabwrangler/tests
 | Dependencies | Declared in `go.mod`. Never installed at runtime. |
 | Versions | `core/types/version.go`, `extension/manifest.json`, `install.sh`, and `Makefile` carry the same version. |
 
-## 5. Security Issues
+## 5. License of Contributions
+
+By submitting a contribution, you agree that it is licensed under the [PolyForm Noncommercial License 1.0.0](LICENSE) and that the project owner may also offer it under a separate commercial license.
+
+## 6. Security Issues
 
 Report vulnerabilities privately. See [SECURITY.md](SECURITY.md).
