@@ -91,7 +91,7 @@ chmod +x tabwrangler-linux-*
 mv tabwrangler-linux-* tabwrangler
 ```
 
-After preparing the binary, proceed to [3.3 Register Native Messaging Host](#33-register-native-messaging-host).
+After preparing the binary, proceed to [3.4 Register Native Messaging Host](#34-register-native-messaging-host).
 
 ### 3.3 Build from Source
 

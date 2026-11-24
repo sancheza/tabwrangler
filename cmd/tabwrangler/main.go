@@ -10,8 +10,9 @@ import (
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
-	"github.com/sancheza/tabwrangler/core/browser/safari"
 	"github.com/sancheza/tabwrangler/core/bridge"
+	"github.com/sancheza/tabwrangler/core/browser"
+	"github.com/sancheza/tabwrangler/core/browser/safari"
 	"github.com/sancheza/tabwrangler/core/collector"
 	"github.com/sancheza/tabwrangler/core/setup"
 	"github.com/sancheza/tabwrangler/core/tui"
@@ -128,6 +129,7 @@ func printUsage() {
 // and starts the interactive Bubble Tea terminal user interface.
 func main() {
 	bridge.Log("TabWrangler process started: args=%v", os.Args)
+	browser.Debug = bridge.Log
 	// Custom flag set to strictly support -v/--version and -h/--help per standard command-line conventions (-h/--help, -v/--version)
 	var (
 		versionFlagShort bool

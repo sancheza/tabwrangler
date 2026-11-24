@@ -44,3 +44,8 @@ end if
 `
 	_ = exec.CommandContext(ctx, "osascript", "-e", script).Run()
 }
+
+// activateWindow raises the application; macOS activates the app's frontmost window.
+func activateWindow(b types.BrowserType, titleHint string) {
+	ActivateBrowserApplication(b)
+}

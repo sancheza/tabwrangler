@@ -10,6 +10,7 @@ import (
 
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
+	"github.com/sancheza/tabwrangler/core/bridge"
 	"github.com/sancheza/tabwrangler/core/collector"
 	"github.com/sancheza/tabwrangler/core/telemetry"
 	"github.com/sancheza/tabwrangler/core/types"
@@ -29,6 +30,9 @@ const (
 
 // RefreshDoneMsg is emitted when an on-demand tab refresh finishes.
 type RefreshDoneMsg struct {
+	// Seq numbers the refresh that produced this result, starting at 1. A result
+	// older than one already applied is ignored. Zero means unnumbered and is always applied.
+	Seq          uint64
 	Tabs         []types.Tab
 	Errors       map[types.BrowserType]error
 	BrowserStats map[types.BrowserType]telemetry.BrowserProcessStats
@@ -64,40 +68,42 @@ type UndoAction struct {
 
 // Model encapsulates the Bubble Tea state for TabWrangler.
 type Model struct {
-	collector       *collector.Collector
-	dryRun          bool
-	width           int
-	height          int
-	ready           bool
-	isRefreshing    bool
+	collector    *collector.Collector
+	dryRun       bool
+	width        int
+	height       int
+	ready        bool
+	isRefreshing bool
+	refreshSeq   uint64 // number of the latest refresh started
+	appliedSeq   uint64 // number of the newest refresh result applied
 
 	// Tab data
-	allTabs         []types.Tab
-	visibleTabs     []types.Tab
-	selectedIDs     map[string]bool
-	browserErrors   map[types.BrowserType]error
-	browserStats    map[types.BrowserType]telemetry.BrowserProcessStats
+	allTabs       []types.Tab
+	visibleTabs   []types.Tab
+	selectedIDs   map[string]bool
+	browserErrors map[types.BrowserType]error
+	browserStats  map[types.BrowserType]telemetry.BrowserProcessStats
 
 	// Browser filtering & scoping
 	activeBrowser   types.BrowserType
 	allowedBrowsers []types.BrowserType
 
 	// Search & display toggles
-	filterInput     textinput.Model
-	isFiltering     bool
-	showSpecial     bool
-	showFullURL     bool
+	filterInput textinput.Model
+	isFiltering bool
+	showSpecial bool
+	showFullURL bool
 
 	// Sorting
-	sortCol         SortColumn
-	sortDesc        bool
+	sortCol  SortColumn
+	sortDesc bool
 
 	// Undo stack
-	undoStack       []UndoAction
+	undoStack []UndoAction
 
 	// Navigation & virtual table viewport
-	cursor          int
-	viewportOffset  int
+	cursor         int
+	viewportOffset int
 
 	// Overlays & Confirmation
 	showHelp        bool
@@ -106,8 +112,8 @@ type Model struct {
 	closingTabs     []types.Tab
 
 	// Feedback
-	toast           string
-	toastIsWarning  bool
+	toast          string
+	toastIsWarning bool
 }
 
 // NewModel constructs a Model initialized with the given collector.
@@ -118,20 +124,20 @@ func NewModel(c *collector.Collector, initialBrowser types.BrowserType, dryRun b
 	ti.CharLimit = 120
 
 	return Model{
-		collector:       c,
-		dryRun:          dryRun,
-		activeBrowser:   initialBrowser,
-		selectedIDs:     make(map[string]bool),
-		browserErrors:   make(map[types.BrowserType]error),
-		browserStats:    make(map[types.BrowserType]telemetry.BrowserProcessStats),
-		filterInput:     ti,
-		showSpecial:     false,
-		showFullURL:     false,
-		sortCol:         SortDomain,
-		sortDesc:        false,
-		undoStack:       make([]UndoAction, 0),
-		cursor:          0,
-		viewportOffset:  0,
+		collector:      c,
+		dryRun:         dryRun,
+		activeBrowser:  initialBrowser,
+		selectedIDs:    make(map[string]bool),
+		browserErrors:  make(map[types.BrowserType]error),
+		browserStats:   make(map[types.BrowserType]telemetry.BrowserProcessStats),
+		filterInput:    ti,
+		showSpecial:    false,
+		showFullURL:    false,
+		sortCol:        SortDomain,
+		sortDesc:       false,
+		undoStack:      make([]UndoAction, 0),
+		cursor:         0,
+		viewportOffset: 0,
 		allowedBrowsers: []types.BrowserType{
 			types.BrowserAll,
 			types.BrowserChrome,
@@ -161,10 +167,14 @@ func (m Model) Init() tea.Cmd {
 // triggerRefresh queries all registered browser adapters asynchronously.
 func (m *Model) triggerRefresh() tea.Cmd {
 	m.isRefreshing = true
+	m.refreshSeq++
+	seq := m.refreshSeq
 	return func() tea.Msg {
+		started := time.Now()
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 		defer cancel()
 		tabs, errs := m.collector.FetchAll(ctx, 3*time.Second)
+		bridge.Log("refresh #%d: %d tabs, %d browser errors, fetched in %s", seq, len(tabs), len(errs), time.Since(started).Round(time.Millisecond))
 
 		// Enrich tabs with live process telemetry
 		procCollector := telemetry.NewOSCollector()
@@ -174,7 +184,9 @@ func (m *Model) triggerRefresh() tea.Cmd {
 			stats = telemetry.CalculateBrowserStats(procs)
 		}
 
+		bridge.Log("refresh #%d: finished in %s", seq, time.Since(started).Round(time.Millisecond))
 		return RefreshDoneMsg{
+			Seq:          seq,
 			Tabs:         tabs,
 			Errors:       errs,
 			BrowserStats: stats,

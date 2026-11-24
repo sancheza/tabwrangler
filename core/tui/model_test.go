@@ -167,3 +167,22 @@ func TestUndoStackOperations(t *testing.T) {
 		t.Fatal("expected showFullURL true after pressing U")
 	}
 }
+
+func TestRefreshDoneIgnoresStaleResult(t *testing.T) {
+	coll := collector.NewCollector()
+	m := NewModel(coll, types.BrowserAll, false)
+	tab := types.Tab{TabID: "1", WindowID: "1", Title: "Newer", URL: "https://example.org", Browser: types.BrowserChrome}
+
+	// Refresh 2 finishes first and carries tabs; refresh 1 (started earlier, found no browsers) finishes later.
+	updated, _ := m.Update(RefreshDoneMsg{Seq: 2, Tabs: []types.Tab{tab}})
+	updated, _ = updated.(Model).Update(RefreshDoneMsg{Seq: 1, Tabs: nil})
+	if got := len(updated.(Model).allTabs); got != 1 {
+		t.Fatalf("stale refresh replaced newer data: have %d tabs, want 1", got)
+	}
+
+	// An unnumbered result is always applied.
+	updated, _ = updated.(Model).Update(RefreshDoneMsg{Tabs: nil})
+	if got := len(updated.(Model).allTabs); got != 0 {
+		t.Fatalf("unnumbered refresh should apply: have %d tabs, want 0", got)
+	}
+}

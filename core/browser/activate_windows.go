@@ -4,8 +4,10 @@
 package browser
 
 import (
+	"runtime"
 	"strings"
 	"syscall"
+	"time"
 	"unsafe"
 
 	"github.com/sancheza/tabwrangler/core/types"
@@ -19,7 +21,7 @@ var (
 	procGetWindowTextLengthW     = user32.NewProc("GetWindowTextLengthW")
 	procGetClassNameW            = user32.NewProc("GetClassNameW")
 	procIsWindowVisible          = user32.NewProc("IsWindowVisible")
-	procGetForegroundWindow       = user32.NewProc("GetForegroundWindow")
+	procGetForegroundWindow      = user32.NewProc("GetForegroundWindow")
 	procGetWindowThreadProcessId = user32.NewProc("GetWindowThreadProcessId")
 	procAttachThreadInput        = user32.NewProc("AttachThreadInput")
 	procAllowSetForegroundWindow = user32.NewProc("AllowSetForegroundWindow")
@@ -32,99 +34,115 @@ var (
 )
 
 const (
-	swRestore       = 9
-	asfwAny         = 0xFFFFFFFF
-	vkMenu          = 0x12 // VK_MENU (Alt key)
-	keyeventfKeyup  = 0x0002
-	hwndTopmost     = ^uintptr(0) // -1
-	hwndNotopmost   = ^uintptr(1) // -2
-	hwndTop         = 0
-	swpNosize       = 0x0001
-	swpNomove       = 0x0002
-	swpShowwindow   = 0x0040
+	swRestore      = 9
+	asfwAny        = 0xFFFFFFFF
+	vkMenu         = 0x12 // VK_MENU (Alt key)
+	keyeventfKeyup = 0x0002
+	hwndTopmost    = ^uintptr(0) // -1
+	hwndNotopmost  = ^uintptr(1) // -2
+	hwndTop        = 0
+	swpNosize      = 0x0001
+	swpNomove      = 0x0002
+	swpShowwindow  = 0x0040
 )
 
-// ActivateBrowserApplication raises the specified browser application window to the foreground on Windows.
+// ActivateBrowserApplication raises the frontmost window of the specified browser to the foreground on Windows.
 func ActivateBrowserApplication(b types.BrowserType) {
-	var targetClasses []string
-	var targetSubstrings []string
+	activateWindow(b, "")
+}
 
-	switch b {
-	case types.BrowserChrome:
-		targetClasses = []string{"chrome_widgetwin_1"}
-		targetSubstrings = []string{"chrome", "google chrome"}
-	case types.BrowserFirefox:
-		targetClasses = []string{"mozillawindowclass"}
-		targetSubstrings = []string{"firefox", "mozilla firefox"}
-	default:
-		return
+// processImageName returns the lower-case executable file name of the process
+// that owns hwnd, or "" when it cannot be read (for example an elevated process).
+func processImageName(hwnd windows.HWND) string {
+	var pid uint32
+	procGetWindowThreadProcessId.Call(uintptr(hwnd), uintptr(unsafe.Pointer(&pid)))
+	if pid == 0 {
+		return ""
 	}
+	h, err := windows.OpenProcess(windows.PROCESS_QUERY_LIMITED_INFORMATION, false, pid)
+	if err != nil {
+		return ""
+	}
+	defer windows.CloseHandle(h)
+	buf := make([]uint16, windows.MAX_PATH)
+	size := uint32(len(buf))
+	if err := windows.QueryFullProcessImageName(h, 0, &buf[0], &size); err != nil {
+		return ""
+	}
+	full := syscall.UTF16ToString(buf[:size])
+	if i := strings.LastIndexAny(full, `\/`); i >= 0 {
+		full = full[i+1:]
+	}
+	return strings.ToLower(full)
+}
 
-	var targetHwnd windows.HWND
-
+// listWindows returns the visible, titled top-level windows from front to back.
+func listWindows() []WindowCandidate {
+	var out []WindowCandidate
 	cb := windows.NewCallback(func(hwnd windows.HWND, lParam uintptr) uintptr {
-		ret, _, _ := procIsWindowVisible.Call(uintptr(hwnd))
-		if ret == 0 {
+		if ret, _, _ := procIsWindowVisible.Call(uintptr(hwnd)); ret == 0 {
 			return 1
 		}
-
-		// Check class name
-		classBuf := make([]uint16, 256)
-		cLen, _, _ := procGetClassNameW.Call(uintptr(hwnd), uintptr(unsafe.Pointer(&classBuf[0])), uintptr(len(classBuf)))
-		className := ""
-		if cLen > 0 {
-			className = strings.ToLower(syscall.UTF16ToString(classBuf[:cLen]))
-		}
-
-		// Check window title
 		titleBuf := make([]uint16, 512)
 		tLen, _, _ := procGetWindowTextW.Call(uintptr(hwnd), uintptr(unsafe.Pointer(&titleBuf[0])), uintptr(len(titleBuf)))
-		title := ""
-		if tLen > 0 {
-			title = strings.ToLower(syscall.UTF16ToString(titleBuf[:tLen]))
+		if tLen == 0 {
+			return 1
 		}
-
-		// Match either by browser window class or title substring
-		matchClass := false
-		for _, tc := range targetClasses {
-			if className == tc {
-				matchClass = true
-				break
-			}
-		}
-
-		matchTitle := false
-		for _, ts := range targetSubstrings {
-			if strings.Contains(title, ts) {
-				matchTitle = true
-				break
-			}
-		}
-
-		if matchClass || matchTitle {
-			// Prefer window with non-empty title (the main browser frame)
-			targetHwnd = hwnd
-			if title != "" {
-				return 0 // Found ideal top-level browser window, stop enumeration
-			}
-		}
+		classBuf := make([]uint16, 256)
+		cLen, _, _ := procGetClassNameW.Call(uintptr(hwnd), uintptr(unsafe.Pointer(&classBuf[0])), uintptr(len(classBuf)))
+		out = append(out, WindowCandidate{
+			Handle: uintptr(hwnd),
+			Class:  syscall.UTF16ToString(classBuf[:cLen]),
+			Title:  syscall.UTF16ToString(titleBuf[:tLen]),
+			Exe:    processImageName(hwnd),
+		})
 		return 1
 	})
-
 	procEnumWindows.Call(cb, 0)
+	return out
+}
 
-	if targetHwnd == 0 {
+// activateWindow raises the browser window chosen by ChooseWindow. The browser
+// updates its window title a moment after a tab switch, so the search repeats
+// briefly until a window title contains the hint.
+func activateWindow(b types.BrowserType, titleHint string) {
+	if b != types.BrowserChrome && b != types.BrowserFirefox {
 		return
 	}
-
-	forceWindowForeground(targetHwnd)
+	var cands []WindowCandidate
+	idx := -1
+	for attempt := 0; attempt < 6; attempt++ {
+		cands = listWindows()
+		idx = ChooseWindow(b, titleHint, cands)
+		if idx < 0 || titleHint == "" {
+			break
+		}
+		if strings.Contains(strings.ToLower(cands[idx].Title), strings.ToLower(strings.TrimSpace(titleHint))) {
+			break
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	if idx < 0 {
+		Debug("activate %s: no matching window among %d visible windows", b, len(cands))
+		return
+	}
+	target := windows.HWND(cands[idx].Handle)
+	ok := forceWindowForeground(target)
+	Debug("activate %s: window %d of %d (exe=%q class=%q) foreground=%v", b, idx+1, len(cands), cands[idx].Exe, cands[idx].Class, ok)
 }
 
 // forceWindowForeground brings the target window to the front, bypassing Windows focus restrictions.
-func forceWindowForeground(hwnd windows.HWND) {
+//
+// AttachThreadInput and SetForegroundWindow act on the calling OS thread, so the
+// goroutine stays on one thread for the whole sequence. It returns whether the
+// window is in the foreground afterward.
+func forceWindowForeground(hwnd windows.HWND) bool {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	fgWnd, _, _ := procGetForegroundWindow.Call()
 	if windows.HWND(fgWnd) == hwnd {
-		return
+		return true
 	}
 
 	// 1. Restore window if minimized
@@ -166,4 +184,7 @@ func forceWindowForeground(hwnd windows.HWND) {
 			procAttachThreadInput.Call(targetThreadID, fgThreadID, 0)
 		}
 	}
+
+	now, _, _ := procGetForegroundWindow.Call()
+	return windows.HWND(now) == hwnd
 }

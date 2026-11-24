@@ -11,3 +11,8 @@ import (
 func ActivateBrowserApplication(b types.BrowserType) {
 	// Non-darwin platforms can implement window manager activation here.
 }
+
+// activateWindow has no per-window behavior on this platform.
+func activateWindow(b types.BrowserType, titleHint string) {
+	ActivateBrowserApplication(b)
+}

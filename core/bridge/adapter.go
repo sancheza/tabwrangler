@@ -143,7 +143,7 @@ func (a *ExtensionAdapter) FocusTab(ctx context.Context, tab types.Tab) error {
 	}
 
 	// Raise the browser application to the very front of the window stack on the host OS
-	browser.ActivateBrowserApplication(a.browser)
+	browser.ActivateBrowserWindow(a.browser, tab.Title)
 	return nil
 }
 

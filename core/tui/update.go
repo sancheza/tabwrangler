@@ -21,6 +21,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case RefreshDoneMsg:
+		if msg.Seq != 0 && msg.Seq < m.appliedSeq {
+			// A newer refresh already finished; this one started earlier and would replace fresher data.
+			return m, nil
+		}
+		if msg.Seq != 0 {
+			m.appliedSeq = msg.Seq
+		}
 		m.isRefreshing = false
 		m.allTabs = msg.Tabs
 		m.browserErrors = msg.Errors

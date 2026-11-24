@@ -2,6 +2,14 @@
 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follow [Semantic Versioning](https://semver.org/).
 
+## Unreleased
+
+### Fixed
+
+- Windows: pressing Enter now raises the browser window that holds the tab. The window is chosen by the owning program (`chrome.exe`, `msedge.exe`, `firefox.exe`) and by tab title, not by window class, which other Chromium-based apps share. The focus calls run on one OS thread. Window selection is logged.
+- A refresh that finishes late no longer replaces newer tab data with an older, empty result. Refreshes are logged with tab counts and timing.
+- README: the link after "Build from Source" points to section 3.4.
+
 ## 1.0.13 - 2026-11-24
 
 ### Security
