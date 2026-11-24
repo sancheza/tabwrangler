@@ -64,6 +64,8 @@ chmod +x tabwrangler-linux-*
 mv tabwrangler-linux-* tabwrangler
 ```
 
+After preparing the binary, proceed to [3.3 Register Native Messaging Host](#33-register-native-messaging-host).
+
 ### 3.2 Option B: Build from Source
 
 Objective: Compile the application binary directly from the Git repository.
