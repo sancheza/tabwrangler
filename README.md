@@ -46,9 +46,22 @@ Download the archive for your operating system from the [Latest Release](https:/
 
 Extract the ZIP archive (Windows) or mark the downloaded binary executable (macOS/Linux):
 
+**Windows (PowerShell):**
+```powershell
+Expand-Archive -Path tabwrangler-windows-amd64.zip -DestinationPath .
+```
+*(Or right-click `tabwrangler-windows-amd64.zip` in File Explorer and select **Extract All...**)*
+
+**macOS:**
 ```bash
-chmod +x tabwrangler-darwin-arm64
-mv tabwrangler-darwin-arm64 tabwrangler
+chmod +x tabwrangler-darwin-*
+mv tabwrangler-darwin-* tabwrangler
+```
+
+**Linux:**
+```bash
+chmod +x tabwrangler-linux-*
+mv tabwrangler-linux-* tabwrangler
 ```
 
 ### 3.2 Option B: Build from Source
