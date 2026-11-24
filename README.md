@@ -172,7 +172,7 @@ Execute the binary from your terminal:
 
 Expected interface:
 ```text
-  TabWrangler v1.0.11                    Tabs: 24 (Filtered: 24)  Selected: 0  Sort: Domain ↑
+  TabWrangler v1.0.12                    Tabs: 24 (Filtered: 24)  Selected: 0  Sort: Domain ↑
   [0] ALL (24)   [1] CHROME (14)   [2] FIREFOX (10)   [3] SAFARI (0)
 
   BROWSER   WINDOW   TAB   TITLE                                  DOMAIN             RAM       CPU      LAST USED
@@ -181,7 +181,7 @@ Expected interface:
   ● Firefox win:1    #1    Python Documentation                   docs.python.org    ~94 MB    0.0%     1h ago
   ...
   ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  [Enter/f] Focus   [d] Discard   [c] Close   [u] Undo   [/] Filter   [s] Sort   [t] Internal   [r] Refresh   [q] Quit
+  [Enter/f] Focus   [h/d] Hibernate   [c] Close   [u] Undo   [/] Filter   [s] Sort   [t] Internal   [r] Refresh   [q] Quit
 ```
 
 ---
@@ -201,7 +201,7 @@ tabwrangler bridge
 | Flag | Description |
 |:--- |:--- |
 | `-h`, `--help` | Show usage screen with full keyboard shortcut list and exit |
-| `-v`, `--version` | Print application version (`1.0.11`) and exit |
+| `-v`, `--version` | Print application version (`1.0.12`) and exit |
 | `--browser <name>` | Pre-filter initial view: `all`, `chrome`, `firefox`, `safari` (default: `all`) |
 | `--dry-run` | Preview tab focus, discard, and close mutations in terminal without modifying browser state |
 | `--mock` | Launch with simulated multi-browser tab data for testing and offline demonstrations |
@@ -227,14 +227,24 @@ tabwrangler --mock
 
 ## 5. Keyboard Navigation & Shortcuts
 
+### Core Concepts
+
+| Concept | Key | Behavior | Browser Tab Strip | Memory / CPU Impact |
+|:--- |:--- |:--- |:--- |:--- |
+| **Hibernate** | `h` or `d` | Puts tab to sleep using browser memory saver engine (`tabs.discard()`). | **Remains open in browser tab strip.** Retains title, URL, and favicon. Clicking wakes instantly from cache. | Frees ~90%+ renderer RAM and completely halts background CPU cycles. |
+| **Close** | `c` | Permanently destroys and removes the tab (`tabs.remove()`). | **Deleted completely.** Tab is removed from the browser window. | Process and memory fully purged. |
+| **Undo** | `u` | Reverts your last mutation. | Re-creates closed tabs or wakes hibernated tabs back into memory. | Restores previous tab state. |
+
+### Shortcuts
+
 | Key | Context | Action |
 |:--- |:--- |:--- |
 | `j` / `k` or `↑` / `↓` | Navigation | Move cursor down / up |
 | `g` / `G` | Navigation | Jump to top / bottom of tab list |
 | `Enter` or `f` | Actions | Focus tab and bring browser window to the front |
-| `d` | Actions | Discard memory for highlighted tab (or all selected tabs) |
+| `h` or `d` | Actions | Hibernate memory for highlighted tab (or all selected tabs; keeps tab in browser) |
 | `c` | Actions | Close highlighted tab (or all selected tabs; asks confirmation if > 3 tabs) |
-| `u` | Actions | Undo last close or discard action (reopens closed tabs or wakes discarded tabs) |
+| `u` | Actions | Undo last close or hibernate action (reopens closed tabs or wakes hibernated tabs) |
 | `Space` | Selection | Toggle checkbox selection on highlighted tab |
 | `a` / `A` | Selection | Select all visible tabs / Clear all selections |
 | `0`–`3` or `[` / `]` | Filters | Switch browser tab filter: `[0] All`, `[1] Chrome`, `[2] Firefox`, `[3] Safari` |
@@ -245,7 +255,8 @@ tabwrangler --mock
 | `t` | Display | Toggle visibility of internal/special tabs (`chrome://*`, `about:*`, `file://*`) |
 | `U` | Display | Toggle full URL column visibility |
 | `r` | Lifecycle | Refresh tab snapshot and host process telemetry on demand |
-| `?` | Helpers | Toggle in-app diagnostics modal and bridge connection status |
+| `?` | Helpers | Toggle in-app help modal explaining concepts and shortcuts |
+| `i` | Helpers | Toggle in-app diagnostics modal and bridge connection status |
 | `q` / `Ctrl+C` | Lifecycle | Quit TabWrangler |
 
 ---

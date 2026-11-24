@@ -18,7 +18,7 @@ import (
 	"github.com/sancheza/tabwrangler/core/types"
 )
 
-const Version = "1.0.11"
+const Version = types.Version
 
 // printUsage renders formatted, colorized CLI usage instructions, examples, and keyboard shortcuts to stdout.
 func printUsage() {
@@ -83,9 +83,9 @@ func printUsage() {
 	b.WriteString("    " + cAmber + "g" + cReset + " / " + cAmber + "G" + cReset + "          Jump to top / bottom of tab list\n")
 	b.WriteString("  " + cBoldWhite + "Actions:" + cReset + "\n")
 	b.WriteString("    " + cAmber + "Enter" + cReset + " or " + cAmber + "f" + cReset + "     Focus tab and raise browser window to very front of screen\n")
-	b.WriteString("    " + cAmber + "d" + cReset + "              Discard memory for highlighted or selected tabs (Chrome & Firefox)\n")
+	b.WriteString("    " + cAmber + "h" + cReset + " or " + cAmber + "d" + cReset + "          Hibernate tab memory (Chrome & Firefox; keeps tab in browser)\n")
 	b.WriteString("    " + cAmber + "c" + cReset + "              Close highlighted or selected tabs (prompts confirmation for > 3 tabs)\n")
-	b.WriteString("    " + cAmber + "u" + cReset + "              Undo last tab action (reopen closed tab or restore discarded tab)\n")
+	b.WriteString("    " + cAmber + "u" + cReset + "              Undo last tab action (reopen closed tab or wake hibernated tab)\n")
 	b.WriteString("  " + cBoldWhite + "Selection:" + cReset + "\n")
 	b.WriteString("    " + cAmber + "Space" + cReset + "          Toggle checkbox selection on highlighted tab\n")
 	b.WriteString("    " + cAmber + "a" + cReset + " / " + cAmber + "A" + cReset + "          Select all visible tabs / Clear all selections\n")

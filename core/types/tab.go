@@ -173,7 +173,7 @@ func (t *Tab) StateLabel() string {
 		return "Pinned"
 	}
 	if t.IsDiscarded {
-		return "Discarded"
+		return "Hibernated"
 	}
 	if t.IsActive {
 		return "Active"

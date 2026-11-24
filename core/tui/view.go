@@ -91,8 +91,16 @@ func (m Model) renderTopBar() string {
 		}
 	}
 
-	bar := strings.Join(tabs, " ")
-	return lipgloss.NewStyle().Width(m.width).Render(bar)
+	left := strings.Join(tabs, " ")
+	versionLabel := lipgloss.NewStyle().Bold(true).Foreground(ColorPrimary).Render("TabWrangler v" + types.Version)
+
+	availGap := m.width - lipgloss.Width(left) - lipgloss.Width(versionLabel) - 2
+	if availGap > 1 {
+		bar := lipgloss.JoinHorizontal(lipgloss.Top, left, strings.Repeat(" ", availGap), versionLabel)
+		return lipgloss.NewStyle().Width(m.width).Render(bar)
+	}
+
+	return lipgloss.NewStyle().Width(m.width).Render(left)
 }
 
 func (m Model) renderFilterStrip() string {
@@ -301,11 +309,11 @@ func (m Model) renderKeybindBar() string {
 		if m.toastIsWarning {
 			toastStyled = StyleToastWarning.Render(m.toast)
 		}
-		bar := toastStyled + "  " + lipgloss.NewStyle().Faint(true).Render("(Press 'i' for extension setup guide, '?' for help)")
+		bar := toastStyled + "  " + lipgloss.NewStyle().Faint(true).Render(fmt.Sprintf("(Press '?' for help, 'i' for diagnostics · v%s)", types.Version))
 		return StyleKeybindBar.Width(m.width).Render(bar)
 	}
 
-	shortcuts := "Enter/f: Focus  |  d: Discard  |  c: Close  |  u: Undo  |  Space: Select  |  a/A: All/None  |  s: Sort  |  /: Filter  |  r: Refresh  |  ?: Help  |  q: Quit"
+	shortcuts := "Enter/f: Focus  |  h/d: Hibernate  |  c: Close  |  u: Undo  |  Space: Select  |  a/A: All/None  |  s: Sort  |  /: Filter  |  r: Refresh  |  ?: Help  |  q: Quit"
 	return StyleKeybindBar.Width(m.width).Render(shortcuts)
 }
 
@@ -317,8 +325,16 @@ func (m Model) renderConfirmationModal() string {
 }
 
 func (m Model) renderHelpModal() string {
-	title := lipgloss.NewStyle().Bold(true).Foreground(ColorPrimary).Render("TabWrangler — Keyboard Shortcuts")
+	title := lipgloss.NewStyle().Bold(true).Foreground(ColorPrimary).Render(fmt.Sprintf("TabWrangler v%s — Help & Keyboard Shortcuts", types.Version))
 	table := `
+Core Concepts:
+  • Hibernate (h/d) : Puts background tabs to sleep using browser memory saver engine.
+                      The tab remains open in your browser tab strip with its title, URL,
+                      and favicon intact, but frees renderer RAM and CPU. Clicking or
+                      switching to the tab in your browser reloads it instantly from cache.
+  • Close (c)       : Permanently terminates and removes the tab from the browser window.
+  • Undo (u)        : Reverts your last mutation (reopens closed tabs or wakes hibernated tabs).
+
 Navigation:
   j / k or ↓ / ↑    Move cursor down / up
   g / G             Jump to top / bottom of list
@@ -336,10 +352,10 @@ Filtering & View:
   U                 Toggle inline full URL column
 
 Actions:
-  Enter or f        Focus tab & raise browser window
-  d                 Discard/unload selected tabs from memory
+  Enter or f        Focus tab & raise browser window to front
+  h or d            Hibernate / sleep selected tabs (frees RAM, tab stays in browser)
   c                 Close selected tabs (confirms if > 3 tabs)
-  u                 Undo last close or discard action
+  u                 Undo last close or hibernate action
   r                 Refresh tab snapshot on demand
   i                 Show bridge & permissions diagnostics
   ?                 Toggle this help overlay
@@ -349,7 +365,7 @@ Actions:
 }
 
 func (m Model) renderDiagnosticsModal() string {
-	title := lipgloss.NewStyle().Bold(true).Foreground(ColorPrimary).Render("TabWrangler — Diagnostics & Bridge Status")
+	title := lipgloss.NewStyle().Bold(true).Foreground(ColorPrimary).Render(fmt.Sprintf("TabWrangler v%s — Diagnostics & Bridge Status", types.Version))
 	var items []string
 
 	for _, b := range []types.BrowserType{types.BrowserChrome, types.BrowserFirefox, types.BrowserSafari} {

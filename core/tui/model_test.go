@@ -143,7 +143,20 @@ func TestUndoStackOperations(t *testing.T) {
 		t.Fatalf("expected undo stack len 0 after undo close, got %d", m.UndoStackLen())
 	}
 
-	// Test 6: Press 'U' to toggle full URL
+	// Test 6: Press 'h' to hibernate
+	hKey := tea.KeyPressMsg(tea.Key{Text: "h", Code: 'h'})
+	updated, hCmd := m.Update(hKey)
+	m = updated.(Model)
+	if hCmd == nil {
+		t.Fatal("expected non-nil cmd on hibernate with 'h'")
+	}
+	if m.UndoStackLen() != 1 {
+		t.Fatalf("expected undo stack len 1 after hibernate, got %d", m.UndoStackLen())
+	}
+	updated, _ = m.Update(uKey)
+	m = updated.(Model)
+
+	// Test 7: Press 'U' to toggle full URL
 	bigUKey := tea.KeyPressMsg(tea.Key{Text: "U", Code: 'U'})
 	if m.showFullURL {
 		t.Fatal("expected showFullURL initial false")

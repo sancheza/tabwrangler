@@ -239,7 +239,7 @@ func (m Model) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 			return m, m.executeFocusTab(target)
 		}
 
-	case "d":
+	case "h", "d":
 		targets := m.SelectedOrHighlightedTabs()
 		if len(targets) > 0 {
 			m.undoStack = append(m.undoStack, UndoAction{Type: UndoDiscard, Tabs: targets})
@@ -377,7 +377,7 @@ func (m *Model) executeDiscardTabs(tabs []types.Tab) tea.Cmd {
 		return func() tea.Msg {
 			return ActionDoneMsg{
 				Action: "discard",
-				Toast:  fmt.Sprintf("[DRY-RUN] Would discard %d tabs", len(tabs)),
+				Toast:  fmt.Sprintf("[DRY-RUN] Would hibernate %d tabs", len(tabs)),
 			}
 		}
 	}
@@ -389,7 +389,7 @@ func (m *Model) executeDiscardTabs(tabs []types.Tab) tea.Cmd {
 		if err != nil {
 			return ActionDoneMsg{
 				Action:    "discard",
-				Toast:     fmt.Sprintf("Discard error: %v", err),
+				Toast:     fmt.Sprintf("Hibernate error: %v", err),
 				IsWarning: true,
 				Err:       err,
 			}
@@ -397,9 +397,9 @@ func (m *Model) executeDiscardTabs(tabs []types.Tab) tea.Cmd {
 
 		var toast string
 		if skipped > 0 {
-			toast = fmt.Sprintf("Discarded %d tabs (%d skipped — unsupported or active)", discarded, skipped)
+			toast = fmt.Sprintf("Hibernated %d tabs (%d skipped — unsupported or active)", discarded, skipped)
 		} else {
-			toast = fmt.Sprintf("Discarded %d tabs", discarded)
+			toast = fmt.Sprintf("Hibernated %d tabs", discarded)
 		}
 
 		return ActionDoneMsg{
@@ -482,7 +482,7 @@ func (m *Model) executeUndoDiscard(tabs []types.Tab) tea.Cmd {
 		return func() tea.Msg {
 			return ActionDoneMsg{
 				Action: "undo_discard",
-				Toast:  fmt.Sprintf("[DRY-RUN] Would wake %d discarded tab(s)", len(tabs)),
+				Toast:  fmt.Sprintf("[DRY-RUN] Would wake %d hibernated tab(s)", len(tabs)),
 			}
 		}
 	}
@@ -498,7 +498,7 @@ func (m *Model) executeUndoDiscard(tabs []types.Tab) tea.Cmd {
 			toast = fmt.Sprintf("Undo error: %v (restored %d tabs, %d failed)", err, woken, failed)
 			isWarn = true
 		} else {
-			toast = fmt.Sprintf("Undo: restored %d discarded tab(s)", woken)
+			toast = fmt.Sprintf("Undo: restored %d hibernated tab(s)", woken)
 		}
 		return ActionDoneMsg{
 			Action:    "undo_discard",
