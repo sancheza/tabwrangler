@@ -305,7 +305,7 @@ func (m Model) renderKeybindBar() string {
 		return StyleKeybindBar.Width(m.width).Render(bar)
 	}
 
-	shortcuts := "Enter/f: Focus  |  d: Discard  |  c: Close  |  Space: Select  |  a/A: All/None  |  s: Sort  |  /: Filter  |  r: Refresh  |  ?: Help  |  q: Quit"
+	shortcuts := "Enter/f: Focus  |  d: Discard  |  c: Close  |  u: Undo  |  Space: Select  |  a/A: All/None  |  s: Sort  |  /: Filter  |  r: Refresh  |  ?: Help  |  q: Quit"
 	return StyleKeybindBar.Width(m.width).Render(shortcuts)
 }
 
@@ -333,12 +333,13 @@ Filtering & View:
   s                 Toggle sort direction (most ⇄ least, A ⇄ Z), then advance column
   S                 Invert current sort direction
   t                 Toggle special/internal tabs (chrome://*, about:*)
-  u                 Toggle inline full URL column
+  U                 Toggle inline full URL column
 
 Actions:
   Enter or f        Focus tab & raise browser window
   d                 Discard/unload selected tabs from memory
   c                 Close selected tabs (confirms if > 3 tabs)
+  u                 Undo last close or discard action
   r                 Refresh tab snapshot on demand
   i                 Show bridge & permissions diagnostics
   ?                 Toggle this help overlay

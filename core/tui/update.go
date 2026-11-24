@@ -88,6 +88,7 @@ func (m Model) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 			m.confirmClose = false
 			toClose := m.closingTabs
 			m.closingTabs = nil
+			m.undoStack = append(m.undoStack, UndoAction{Type: UndoClose, Tabs: toClose})
 			return m, m.executeCloseTabs(toClose)
 		case "n", "N", "esc":
 			m.confirmClose = false
@@ -214,6 +215,22 @@ func (m Model) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		m.FilterAndSortTabs()
 
 	case "u":
+		if len(m.undoStack) == 0 {
+			m.toast = "Nothing to undo"
+			m.toastIsWarning = true
+			return m, nil
+		}
+		lastIdx := len(m.undoStack) - 1
+		action := m.undoStack[lastIdx]
+		m.undoStack = m.undoStack[:lastIdx]
+
+		if action.Type == UndoClose {
+			return m, m.executeUndoClose(action.Tabs)
+		} else if action.Type == UndoDiscard {
+			return m, m.executeUndoDiscard(action.Tabs)
+		}
+
+	case "U":
 		m.showFullURL = !m.showFullURL
 
 	case "enter", "f":
@@ -225,6 +242,7 @@ func (m Model) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	case "d":
 		targets := m.SelectedOrHighlightedTabs()
 		if len(targets) > 0 {
+			m.undoStack = append(m.undoStack, UndoAction{Type: UndoDiscard, Tabs: targets})
 			return m, m.executeDiscardTabs(targets)
 		}
 
@@ -235,6 +253,7 @@ func (m Model) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 			m.closingTabs = targets
 			return m, nil
 		} else if len(targets) > 0 {
+			m.undoStack = append(m.undoStack, UndoAction{Type: UndoClose, Tabs: targets})
 			return m, m.executeCloseTabs(targets)
 		}
 
@@ -423,6 +442,68 @@ func (m *Model) executeCloseTabs(tabs []types.Tab) tea.Cmd {
 		return ActionDoneMsg{
 			Action: "close",
 			Toast:  toast,
+		}
+	}
+}
+
+func (m *Model) executeUndoClose(tabs []types.Tab) tea.Cmd {
+	if m.dryRun {
+		return func() tea.Msg {
+			return ActionDoneMsg{
+				Action: "undo_close",
+				Toast:  fmt.Sprintf("[DRY-RUN] Would reopen %d tab(s)", len(tabs)),
+			}
+		}
+	}
+
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		opened, failed, err := m.collector.ReopenTabs(ctx, tabs)
+		var toast string
+		isWarn := false
+		if err != nil {
+			toast = fmt.Sprintf("Undo error: %v (reopened %d tabs, %d failed)", err, opened, failed)
+			isWarn = true
+		} else {
+			toast = fmt.Sprintf("Undo: reopened %d closed tab(s)", opened)
+		}
+		return ActionDoneMsg{
+			Action:    "undo_close",
+			Toast:     toast,
+			IsWarning: isWarn,
+		}
+	}
+}
+
+func (m *Model) executeUndoDiscard(tabs []types.Tab) tea.Cmd {
+	if m.dryRun {
+		return func() tea.Msg {
+			return ActionDoneMsg{
+				Action: "undo_discard",
+				Toast:  fmt.Sprintf("[DRY-RUN] Would wake %d discarded tab(s)", len(tabs)),
+			}
+		}
+	}
+
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		woken, failed, err := m.collector.WakeTabs(ctx, tabs)
+		var toast string
+		isWarn := false
+		if err != nil {
+			toast = fmt.Sprintf("Undo error: %v (restored %d tabs, %d failed)", err, woken, failed)
+			isWarn = true
+		} else {
+			toast = fmt.Sprintf("Undo: restored %d discarded tab(s)", woken)
+		}
+		return ActionDoneMsg{
+			Action:    "undo_discard",
+			Toast:     toast,
+			IsWarning: isWarn,
 		}
 	}
 }

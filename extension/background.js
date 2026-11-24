@@ -183,6 +183,61 @@ async function handleRequest(req) {
         break;
       }
 
+      case "reopen_tabs": {
+        const urls = req.urls || (req.url ? [req.url] : []);
+        let opened = 0;
+        let failed = 0;
+
+        for (const u of urls) {
+          try {
+            const createOpts = { url: u, active: false };
+            if (req.window_id) createOpts.windowId = req.window_id;
+            await api.tabs.create(createOpts);
+            opened++;
+          } catch (e) {
+            try {
+              await api.tabs.create({ url: u, active: false });
+              opened++;
+            } catch (e2) {
+              failed++;
+            }
+          }
+        }
+
+        sendResponse({
+          id: req.id,
+          action: req.action,
+          success: true,
+          opened,
+          failed
+        });
+        break;
+      }
+
+      case "wake_tabs": {
+        const tabIds = req.tab_ids || (req.tab_id ? [req.tab_id] : []);
+        let woken = 0;
+        let failed = 0;
+
+        for (const tid of tabIds) {
+          try {
+            await api.tabs.reload(tid);
+            woken++;
+          } catch (e) {
+            failed++;
+          }
+        }
+
+        sendResponse({
+          id: req.id,
+          action: req.action,
+          success: true,
+          woken,
+          failed
+        });
+        break;
+      }
+
       default:
         sendResponse({
           id: req.id,

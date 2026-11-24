@@ -355,3 +355,36 @@ func (m *MockAdapter) CloseTabs(ctx context.Context, tabs []types.Tab) (int, int
 	m.tabs = remaining
 	return closed, 0, nil
 }
+
+func (m *MockAdapter) ReopenTabs(ctx context.Context, tabs []types.Tab) (int, int, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	opened := 0
+	for _, t := range tabs {
+		t.IsActive = false
+		m.tabs = append(m.tabs, t)
+		opened++
+	}
+	return opened, 0, nil
+}
+
+func (m *MockAdapter) WakeTabs(ctx context.Context, tabs []types.Tab) (int, int, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	ids := make(map[string]bool)
+	for _, t := range tabs {
+		ids[t.ID] = true
+	}
+
+	woken := 0
+	for i := range m.tabs {
+		if ids[m.tabs[i].ID] {
+			m.tabs[i].IsDiscarded = false
+			m.tabs[i].Metrics.RAMBytes = 180 * 1024 * 1024
+			woken++
+		}
+	}
+	return woken, 0, nil
+}

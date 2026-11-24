@@ -19,6 +19,8 @@ type BrowserAdapter interface {
 	FocusTab(ctx context.Context, tab types.Tab) error
 	DiscardTabs(ctx context.Context, tabs []types.Tab) (discarded int, skipped int, err error)
 	CloseTabs(ctx context.Context, tabs []types.Tab) (closed int, failed int, err error)
+	ReopenTabs(ctx context.Context, tabs []types.Tab) (opened int, failed int, err error)
+	WakeTabs(ctx context.Context, tabs []types.Tab) (woken int, failed int, err error)
 }
 
 // Collector aggregates tab data from all registered browser adapters.
@@ -172,4 +174,58 @@ func (c *Collector) CloseTabs(ctx context.Context, tabs []types.Tab) (int, int, 
 	}
 
 	return totalClosed, totalFailed, nil
+}
+
+// ReopenTabs batches tabs by browser and executes reopen/create operations.
+func (c *Collector) ReopenTabs(ctx context.Context, tabs []types.Tab) (int, int, error) {
+	byBrowser := make(map[types.BrowserType][]types.Tab)
+	for _, t := range tabs {
+		byBrowser[t.Browser] = append(byBrowser[t.Browser], t)
+	}
+
+	totalOpened := 0
+	totalFailed := 0
+
+	for bt, bTabs := range byBrowser {
+		adapter, ok := c.GetAdapter(bt)
+		if !ok {
+			totalFailed += len(bTabs)
+			continue
+		}
+		opened, failed, err := adapter.ReopenTabs(ctx, bTabs)
+		totalOpened += opened
+		totalFailed += failed
+		if err != nil {
+			return totalOpened, totalFailed, err
+		}
+	}
+
+	return totalOpened, totalFailed, nil
+}
+
+// WakeTabs batches tabs by browser and executes wake/reload operations.
+func (c *Collector) WakeTabs(ctx context.Context, tabs []types.Tab) (int, int, error) {
+	byBrowser := make(map[types.BrowserType][]types.Tab)
+	for _, t := range tabs {
+		byBrowser[t.Browser] = append(byBrowser[t.Browser], t)
+	}
+
+	totalWoken := 0
+	totalFailed := 0
+
+	for bt, bTabs := range byBrowser {
+		adapter, ok := c.GetAdapter(bt)
+		if !ok {
+			totalFailed += len(bTabs)
+			continue
+		}
+		woken, failed, err := adapter.WakeTabs(ctx, bTabs)
+		totalWoken += woken
+		totalFailed += failed
+		if err != nil {
+			return totalWoken, totalFailed, err
+		}
+	}
+
+	return totalWoken, totalFailed, nil
 }

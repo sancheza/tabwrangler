@@ -47,3 +47,13 @@ func (a *Adapter) DiscardTabs(ctx context.Context, tabs []types.Tab) (int, int, 
 func (a *Adapter) CloseTabs(ctx context.Context, tabs []types.Tab) (int, int, error) {
 	return 0, len(tabs), errors.New("safari adapter is only available on macOS")
 }
+
+// ReopenTabs returns an error on non-macOS platforms.
+func (a *Adapter) ReopenTabs(ctx context.Context, tabs []types.Tab) (int, int, error) {
+	return 0, len(tabs), errors.New("safari adapter is only available on macOS")
+}
+
+// WakeTabs returns skipped on non-macOS platforms.
+func (a *Adapter) WakeTabs(ctx context.Context, tabs []types.Tab) (int, int, error) {
+	return 0, len(tabs), nil
+}

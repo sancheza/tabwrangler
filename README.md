@@ -172,7 +172,7 @@ Execute the binary from your terminal:
 
 Expected interface:
 ```text
-  TabWrangler v1.0.10                    Tabs: 24 (Filtered: 24)  Selected: 0  Sort: Domain ↑
+  TabWrangler v1.0.11                    Tabs: 24 (Filtered: 24)  Selected: 0  Sort: Domain ↑
   [0] ALL (24)   [1] CHROME (14)   [2] FIREFOX (10)   [3] SAFARI (0)
 
   BROWSER   WINDOW   TAB   TITLE                                  DOMAIN             RAM       CPU      LAST USED
@@ -181,7 +181,7 @@ Expected interface:
   ● Firefox win:1    #1    Python Documentation                   docs.python.org    ~94 MB    0.0%     1h ago
   ...
   ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  [Enter/f] Focus   [d] Discard   [c] Close   [/] Filter   [s] Sort   [t] Internal   [r] Refresh   [q] Quit
+  [Enter/f] Focus   [d] Discard   [c] Close   [u] Undo   [/] Filter   [s] Sort   [t] Internal   [r] Refresh   [q] Quit
 ```
 
 ---
@@ -201,7 +201,7 @@ tabwrangler bridge
 | Flag | Description |
 |:--- |:--- |
 | `-h`, `--help` | Show usage screen with full keyboard shortcut list and exit |
-| `-v`, `--version` | Print application version (`1.0.10`) and exit |
+| `-v`, `--version` | Print application version (`1.0.11`) and exit |
 | `--browser <name>` | Pre-filter initial view: `all`, `chrome`, `firefox`, `safari` (default: `all`) |
 | `--dry-run` | Preview tab focus, discard, and close mutations in terminal without modifying browser state |
 | `--mock` | Launch with simulated multi-browser tab data for testing and offline demonstrations |
@@ -234,6 +234,7 @@ tabwrangler --mock
 | `Enter` or `f` | Actions | Focus tab and bring browser window to the front |
 | `d` | Actions | Discard memory for highlighted tab (or all selected tabs) |
 | `c` | Actions | Close highlighted tab (or all selected tabs; asks confirmation if > 3 tabs) |
+| `u` | Actions | Undo last close or discard action (reopens closed tabs or wakes discarded tabs) |
 | `Space` | Selection | Toggle checkbox selection on highlighted tab |
 | `a` / `A` | Selection | Select all visible tabs / Clear all selections |
 | `0`–`3` or `[` / `]` | Filters | Switch browser tab filter: `[0] All`, `[1] Chrome`, `[2] Firefox`, `[3] Safari` |
@@ -242,7 +243,7 @@ tabwrangler --mock
 | `s` | Sorting | Step sort direction (most ⇄ least, A ⇄ Z), then advance to next column |
 | `S` | Sorting | Invert current sort direction |
 | `t` | Display | Toggle visibility of internal/special tabs (`chrome://*`, `about:*`, `file://*`) |
-| `u` | Display | Toggle full URL column visibility |
+| `U` | Display | Toggle full URL column visibility |
 | `r` | Lifecycle | Refresh tab snapshot and host process telemetry on demand |
 | `?` | Helpers | Toggle in-app diagnostics modal and bridge connection status |
 | `q` / `Ctrl+C` | Lifecycle | Quit TabWrangler |

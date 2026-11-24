@@ -18,7 +18,7 @@ import (
 	"github.com/sancheza/tabwrangler/core/types"
 )
 
-const Version = "1.0.10"
+const Version = "1.0.11"
 
 // printUsage renders formatted, colorized CLI usage instructions, examples, and keyboard shortcuts to stdout.
 func printUsage() {
@@ -85,6 +85,7 @@ func printUsage() {
 	b.WriteString("    " + cAmber + "Enter" + cReset + " or " + cAmber + "f" + cReset + "     Focus tab and raise browser window to very front of screen\n")
 	b.WriteString("    " + cAmber + "d" + cReset + "              Discard memory for highlighted or selected tabs (Chrome & Firefox)\n")
 	b.WriteString("    " + cAmber + "c" + cReset + "              Close highlighted or selected tabs (prompts confirmation for > 3 tabs)\n")
+	b.WriteString("    " + cAmber + "u" + cReset + "              Undo last tab action (reopen closed tab or restore discarded tab)\n")
 	b.WriteString("  " + cBoldWhite + "Selection:" + cReset + "\n")
 	b.WriteString("    " + cAmber + "Space" + cReset + "          Toggle checkbox selection on highlighted tab\n")
 	b.WriteString("    " + cAmber + "a" + cReset + " / " + cAmber + "A" + cReset + "          Select all visible tabs / Clear all selections\n")
@@ -95,7 +96,7 @@ func printUsage() {
 	b.WriteString("    " + cAmber + "0" + cReset + "–" + cAmber + "3" + cReset + " or " + cAmber + "[" + cReset + " / " + cAmber + "]" + cReset + "    Switch browser tab filter: [0] All, [1] Chrome, [2] Firefox, [3] Safari\n")
 	b.WriteString("  " + cBoldWhite + "Display & Helpers:" + cReset + "\n")
 	b.WriteString("    " + cAmber + "t" + cReset + "              Toggle visibility of internal/special tabs (chrome://, about:)\n")
-	b.WriteString("    " + cAmber + "u" + cReset + "              Toggle full URL column visibility\n")
+	b.WriteString("    " + cAmber + "U" + cReset + "              Toggle full URL column visibility\n")
 	b.WriteString("    " + cAmber + "r" + cReset + "              Refresh tab and host process telemetry snapshot on demand\n")
 	b.WriteString("    " + cAmber + "?" + cReset + "              Show in-app diagnostics modal and bridge status\n")
 	b.WriteString("    " + cAmber + "q" + cReset + "              Quit TabWrangler\n\n")

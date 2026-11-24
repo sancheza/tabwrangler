@@ -48,6 +48,20 @@ type ClearToastMsg struct{}
 // TriggerRefreshMsg triggers an immediate on-demand tab snapshot in response to an external event.
 type TriggerRefreshMsg struct{}
 
+// UndoActionType describes the category of an undoable tab mutation.
+type UndoActionType string
+
+const (
+	UndoClose   UndoActionType = "close"
+	UndoDiscard UndoActionType = "discard"
+)
+
+// UndoAction records a user mutation for stack-based undo.
+type UndoAction struct {
+	Type UndoActionType
+	Tabs []types.Tab
+}
+
 // Model encapsulates the Bubble Tea state for TabWrangler.
 type Model struct {
 	collector       *collector.Collector
@@ -77,6 +91,9 @@ type Model struct {
 	// Sorting
 	sortCol         SortColumn
 	sortDesc        bool
+
+	// Undo stack
+	undoStack       []UndoAction
 
 	// Navigation & virtual table viewport
 	cursor          int
@@ -112,6 +129,7 @@ func NewModel(c *collector.Collector, initialBrowser types.BrowserType, dryRun b
 		showFullURL:     false,
 		sortCol:         SortDomain,
 		sortDesc:        false,
+		undoStack:       make([]UndoAction, 0),
 		cursor:          0,
 		viewportOffset:  0,
 		allowedBrowsers: []types.BrowserType{
@@ -305,6 +323,11 @@ func (m *Model) SetSortDescending(desc bool) {
 // IsSortDescending returns whether the active sort is descending.
 func (m *Model) IsSortDescending() bool {
 	return m.sortDesc
+}
+
+// UndoStackLen returns the number of actions currently in the undo stack.
+func (m *Model) UndoStackLen() int {
+	return len(m.undoStack)
 }
 
 // FormatBytes formats byte quantities into readable strings.

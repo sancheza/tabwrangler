@@ -14,6 +14,8 @@ const (
 	ActionFocusTab    = "focus_tab"
 	ActionDiscardTabs = "discard_tabs"
 	ActionCloseTabs   = "close_tabs"
+	ActionReopenTabs  = "reopen_tabs"
+	ActionWakeTabs    = "wake_tabs"
 	ActionRegister    = "register"
 	ActionPing        = "ping"
 )
@@ -26,6 +28,7 @@ type Request struct {
 	WindowID  int               `json:"window_id,omitempty"`
 	TabID     int               `json:"tab_id,omitempty"`
 	TabIDs    []int             `json:"tab_ids,omitempty"`
+	URLs      []string          `json:"urls,omitempty"`
 	URL       string            `json:"url,omitempty"`
 	Params    map[string]any    `json:"params,omitempty"`
 }
@@ -41,6 +44,8 @@ type Response struct {
 	Discarded int               `json:"discarded,omitempty"`
 	Skipped   int               `json:"skipped,omitempty"`
 	Closed    int               `json:"closed,omitempty"`
+	Opened    int               `json:"opened,omitempty"`
+	Woken     int               `json:"woken,omitempty"`
 	Failed    int               `json:"failed,omitempty"`
 }
 

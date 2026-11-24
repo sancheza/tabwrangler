@@ -231,3 +231,49 @@ func (a *Adapter) CloseTabs(ctx context.Context, tabs []types.Tab) (int, int, er
 
 	return closed, failed, nil
 }
+
+// ReopenTabs reopens previously closed tabs in Safari by creating new tabs with the specified URLs.
+func (a *Adapter) ReopenTabs(ctx context.Context, tabs []types.Tab) (int, int, error) {
+	opened := 0
+	failed := 0
+
+	for _, t := range tabs {
+		if t.URL == "" {
+			failed++
+			continue
+		}
+
+		script := fmt.Sprintf(`
+(function() {
+    const Safari = Application('Safari');
+    let win = null;
+    try { win = Safari.windows.byId(%s); } catch(e) {}
+    if (!win) {
+        const wins = Safari.windows();
+        if (wins.length > 0) win = wins[0];
+    }
+    if (win) {
+        const newTab = Safari.Tab({url: %q});
+        win.tabs.push(newTab);
+        return "ok";
+    }
+    return "no_window";
+})()
+`, t.WindowID, t.URL)
+
+		cmd := exec.CommandContext(ctx, "osascript", "-l", "JavaScript", "-e", script)
+		out, err := cmd.Output()
+		if err == nil && strings.TrimSpace(string(out)) == "ok" {
+			opened++
+		} else {
+			failed++
+		}
+	}
+
+	return opened, failed, nil
+}
+
+// WakeTabs is a no-op for Safari since Safari does not discard tabs via background APIs.
+func (a *Adapter) WakeTabs(ctx context.Context, tabs []types.Tab) (int, int, error) {
+	return len(tabs), 0, nil
+}

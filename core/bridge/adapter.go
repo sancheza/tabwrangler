@@ -214,3 +214,60 @@ func (a *ExtensionAdapter) CloseTabs(ctx context.Context, tabs []types.Tab) (int
 
 	return resp.Closed, failed + resp.Failed, nil
 }
+
+// ReopenTabs instructs the extension to reopen previously closed tabs by URL.
+func (a *ExtensionAdapter) ReopenTabs(ctx context.Context, tabs []types.Tab) (int, int, error) {
+	if a.server == nil || !a.server.IsBrowserConnected(a.browser) {
+		return 0, len(tabs), fmt.Errorf("companion extension not connected for %s", a.browser)
+	}
+	urls := make([]string, 0, len(tabs))
+	var winID int
+	for _, t := range tabs {
+		if t.URL != "" {
+			urls = append(urls, t.URL)
+			if winID == 0 {
+				if wid, err := strconv.Atoi(t.WindowID); err == nil {
+					winID = wid
+				}
+			}
+		}
+	}
+	if len(urls) == 0 {
+		return 0, 0, nil
+	}
+
+	resp, err := a.server.SendRequest(ctx, a.browser, Request{
+		Action:   ActionReopenTabs,
+		URLs:     urls,
+		WindowID: winID,
+	})
+	if err != nil {
+		return 0, len(tabs), err
+	}
+	return resp.Opened, resp.Failed, nil
+}
+
+// WakeTabs instructs the extension to wake/reload discarded tabs back into memory.
+func (a *ExtensionAdapter) WakeTabs(ctx context.Context, tabs []types.Tab) (int, int, error) {
+	if a.server == nil || !a.server.IsBrowserConnected(a.browser) {
+		return 0, len(tabs), fmt.Errorf("companion extension not connected for %s", a.browser)
+	}
+	tabIDs := make([]int, 0, len(tabs))
+	for _, t := range tabs {
+		if id, err := strconv.Atoi(t.TabID); err == nil {
+			tabIDs = append(tabIDs, id)
+		}
+	}
+	if len(tabIDs) == 0 {
+		return 0, 0, nil
+	}
+
+	resp, err := a.server.SendRequest(ctx, a.browser, Request{
+		Action: ActionWakeTabs,
+		TabIDs: tabIDs,
+	})
+	if err != nil {
+		return 0, len(tabs), err
+	}
+	return resp.Woken, resp.Failed, nil
+}

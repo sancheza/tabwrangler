@@ -60,4 +60,22 @@ func TestCollectorWithMockAdapters(t *testing.T) {
 	if closed != 1 || failed != 0 {
 		t.Fatalf("Expected 1 closed, 0 failed; got %d/%d", closed, failed)
 	}
+
+	// Undo / Reopen test
+	reopened, reopenFailed, err := coll.ReopenTabs(ctx, closeTarget)
+	if err != nil {
+		t.Fatalf("ReopenTabs error: %v", err)
+	}
+	if reopened != 1 || reopenFailed != 0 {
+		t.Fatalf("Expected 1 reopened, 0 failed; got %d/%d", reopened, reopenFailed)
+	}
+
+	// Wake tabs test
+	woken, wakeFailed, err := coll.WakeTabs(ctx, closeTarget)
+	if err != nil {
+		t.Fatalf("WakeTabs error: %v", err)
+	}
+	if woken != 1 || wakeFailed != 0 {
+		t.Fatalf("Expected 1 woken, 0 failed; got %d/%d", woken, wakeFailed)
+	}
 }
