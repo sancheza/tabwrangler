@@ -10,7 +10,9 @@
     "name": "af_heart",
     "speed": 0.88
   },
-  "phonetics": {},
+  "phonetics": {
+    "GitHub": "/ɡˈɪthˌʌb/"
+  },
   "intro_card": {
     "eyebrow": "TabWrangler",
     "headline": "Every browser.\nOne terminal.",
