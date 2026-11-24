@@ -11,6 +11,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -139,7 +140,8 @@ func TestUpdateInstallsNewerRelease(t *testing.T) {
 	if string(got) != "new program" {
 		t.Errorf("program = %q, want the new one", got)
 	}
-	if info, _ := os.Stat(exe); info.Mode().Perm() != 0755 {
+	// Windows reports 0666 for every file, so the executable bit is checked on Unix only.
+	if info, _ := os.Stat(exe); runtime.GOOS != "windows" && info.Mode().Perm() != 0755 {
 		t.Errorf("mode = %v, want 0755", info.Mode().Perm())
 	}
 	if !strings.Contains(out.String(), "Checksum verified") || !strings.Contains(out.String(), "1.0.17") {
