@@ -34,5 +34,13 @@ func ActivateBrowserApplication(b types.BrowserType) {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	_ = exec.CommandContext(ctx, "osascript", "-e", `tell application "`+appName+`" to activate`).Run()
+	script := `
+tell application "System Events"
+    set isRunning to (exists application process "` + appName + `")
+end tell
+if isRunning then
+    tell application "` + appName + `" to activate
+end if
+`
+	_ = exec.CommandContext(ctx, "osascript", "-e", script).Run()
 }

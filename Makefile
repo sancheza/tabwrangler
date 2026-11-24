@@ -1,7 +1,7 @@
 .PHONY: all build build-windows package-windows build-all test clean
 
 BINARY_NAME=tabwrangler
-VERSION=1.0.8
+VERSION=1.0.9
 
 all: test build
 
