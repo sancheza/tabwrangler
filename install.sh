@@ -129,12 +129,20 @@ main() {
   mkdir -p "${prefix}"
 
   log_info "Downloading ${download_url}..."
-  if command -v curl >/dev/null 2>&1; then
-    curl -fsSL "${download_url}" -o "${target_path}"
+  if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
+    # Authenticated GitHub CLI downloads from both public and private repos
+    gh release download -R sancheza/tabwrangler -p "${binary_name}" -D "${prefix}" --clobber
+    mv "${prefix}/${binary_name}" "${target_path}"
+  elif command -v curl >/dev/null 2>&1; then
+    local auth_header=()
+    if [[ -n "${GITHUB_TOKEN:-}" ]]; then
+      auth_header=(-H "Authorization: Bearer ${GITHUB_TOKEN}")
+    fi
+    curl -fsSL "${auth_header[@]}" "${download_url}" -o "${target_path}"
   elif command -v wget >/dev/null 2>&1; then
     wget -qO "${target_path}" "${download_url}"
   else
-    log_error "Neither curl nor wget found in PATH."
+    log_error "Neither gh, curl, nor wget found in PATH."
     exit 1
   fi
 
