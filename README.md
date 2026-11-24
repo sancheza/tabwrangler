@@ -238,7 +238,7 @@ tabwrangler --mock
 
 ## 6. Privacy & Security Architecture
 
-TabWrangler operates strictly on your local machine with zero external network connectivity or data collection.
+We take security and privacy very seriously. TabWrangler operates strictly on your local machine with zero external network connectivity or data collection. While we encourage you to review the source code directly, we want to be completely transparent about the specific permissions required and why they are necessary.
 
 ### Browser Permissions Breakdown
 
