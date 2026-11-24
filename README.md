@@ -56,11 +56,11 @@ Download the archive for your operating system from the [Latest Release](https:/
 
 Extract the ZIP archive (Windows) or mark the downloaded binary executable (macOS/Linux):
 
-**Windows (PowerShell):**
-```powershell
-Expand-Archive -Path tabwrangler-windows-amd64.zip -DestinationPath .
+**Windows (Command Prompt or PowerShell):**
+```cmd
+tar -xf tabwrangler-windows-amd64.zip
 ```
-*(Or right-click `tabwrangler-windows-amd64.zip` in File Explorer and select **Extract All...**)*
+*(Alternatively, run `Expand-Archive -Path tabwrangler-windows-amd64.zip -DestinationPath .` in PowerShell, or right-click the file in File Explorer and select **Extract All...**)*
 
 **macOS:**
 ```bash
