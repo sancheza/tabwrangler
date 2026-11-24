@@ -9,7 +9,7 @@
 Users can inspect every open tab's metadata and resource footprint on demand, filter/sort across browsers, bring any tab to the foreground, discard/unload idle tabs to reclaim memory, or close tabs individually or in bulk.
 
 ### Core Design Principles
-* **On-Demand & Fast:** Zero background polling loops; fetches fresh snapshots on startup, on explicit refresh (`r`), and immediately after tab mutations (`close` / `discard`).
+* **Fast & Current:** Fetches a fresh snapshot on startup, when a browser's companion extension connects, every 5 seconds, on explicit refresh (`r`), and immediately after tab mutations (`close` / `hibernate`). A refresh that finishes late never replaces the result of a newer one.
 * **Unified Control, Instant Scoping:** Shows all active browsers in one unified table by default, with single-key switching to isolate any specific browser.
 * **Honest Telemetry:** Displays per-tab CPU and RAM alongside explicit measurement scope indicators when a browser engine or OS boundary restricts exact 1:1 tab attribution.
 
@@ -92,14 +92,17 @@ Users can inspect every open tab's metadata and resource footprint on demand, fi
 | `s` | Cycle sort column (`RAM`, `CPU`, `Last Used`, `Browser`, `Title`) |
 | `o` | Reverse sort order |
 | `t` | Toggle special/internal tabs (`about:*`, `chrome://*`, `file://*`, blank tabs) |
-| `u` | Toggle full URL column visibility |
+| `v` | Toggle full URL column visibility |
+| `u` | **Undo:** Reopen the last closed tabs or wake the last hibernated tabs |
 | `Enter` or `f` | **Focus / Foreground:** Bring browser application, window, and specific tab to the foreground |
-| `d` | **Discard / Unload:** Unload selected tab(s) (or highlighted tab) from memory while keeping tab open |
+| `h` | **Hibernate / Unload:** Unload selected tab(s) (or highlighted tab) from memory while keeping tab open |
 | `c` | **Close:** Close selected tab(s) (or highlighted tab) |
 | `r` | **Refresh:** Trigger on-demand re-scan of all open tabs and resource stats |
-| `i` | Show bridge/permission diagnostics modal |
+| `i` | Show bridge/permission diagnostics modal, including each companion extension's version |
 | `?` | Toggle full help overlay |
 | `q` / `Ctrl+C` | Quit `tabwrangler` |
+
+Every key is lowercase; a capital letter does the same thing. The retired keys `A`, `D`, `G`, `S`, `U`, and `d` show a hint naming the current key and do nothing else.
 
 ---
 
@@ -112,13 +115,14 @@ Users can inspect every open tab's metadata and resource footprint on demand, fi
 
 ### 5.2 Foreground / Focus (`Enter` or `f`)
 * Operates on the **currently highlighted tab**.
-* **Chrome / Firefox:** Sends `focus_tab` command via Native Messaging (`tabs.update(tabId, { active: true })` + `windows.update(windowId, { focused: true })`) and raises the browser app via OS API (`NSRunningApplication` on macOS / `SetForegroundWindow` on Windows).
+* **Chrome / Firefox:** Sends `focus_tab` command via Native Messaging (`tabs.update(tabId, { active: true })` + `windows.update(windowId, { focused: true })`) and raises the browser app via OS API (`NSRunningApplication` on macOS / `SetForegroundWindow` on Windows; on Windows the window is chosen by its program and by the focused tab's title, so other Chromium-based apps are never raised).
 * **Safari (macOS):** Executes AppleScript/JXA to set `current tab` of target window, set `index` of window to `1`, and `activate` Safari.
 
-### 5.3 Discard / Unload (`d`)
+### 5.3 Hibernate / Unload (`h`)
 * Operates on **all selected tabs** (or highlighted tab if selection is empty).
 * Calls `tabs.discard(tabId)` via the Chrome/Firefox companion bridge.
-* If selection includes Safari tabs or active/un-discardable tabs, skips unsupported items and displays a clear summary toast (e.g., `Discarded 4 tabs (2 Safari tabs skipped — discard unsupported)`).
+* A browser cannot discard the tab showing in its window. For such a tab the extension first switches that window to the most recently used loaded tab, then discards the original. It never switches to a tab that is already discarded or is itself being discarded, so a switch never reloads a tab.
+* Skipped items and the reason appear in the summary toast: already hibernated, not supported (Safari), or the only loaded tab in its window (e.g., `Hibernated 4 tabs (2 skipped — already hibernated, not supported, or the only loaded tab in its window)`).
 * Triggers an automatic refresh after completion.
 
 ### 5.4 Close (`c`)
@@ -166,11 +170,14 @@ Users can inspect every open tab's metadata and resource footprint on demand, fi
 
 1. **Local-Only IPC:**
    * Companion extensions communicate exclusively via browser-managed Native Messaging manifests (`com.tabwrangler.bridge.json`) and a user-scoped Unix domain socket (`/tmp/tabwrangler-$UID.sock` with `0600` permissions on macOS) or a loopback-only TCP port (`127.0.0.1:42823`) on Windows. Each TabWrangler run generates a random token, stored in an owner-only file, that the native messaging host must present when it registers; connections without it are rejected. No ports are open on non-loopback interfaces.
+   * The native messaging host (`tabwrangler bridge`) started by the browser stays running when TabWrangler quits and registers again when TabWrangler starts, so a relaunch finds the browser already connected.
 2. **macOS Permissions:**
    * Provide a `tabwrangler setup` subcommand that installs Native Messaging host manifests for Chrome/Firefox and verifies/prompts for macOS Automation (`System Events` / `Safari`) permissions.
 3. **Windows Packaging:**
    * `tabwrangler setup` registers Native Messaging host registry keys under `HKCU\Software\Google\Chrome\NativeMessagingHosts\` and `HKCU\Software\Mozilla\NativeMessagingHosts\` without requiring Administrator privileges.
-4. **Privacy:**
+4. **Updates:**
+   * `tabwrangler --update` installs the latest GitHub release over the running program, after checking the download against the release's `SHA256SUMS`. On Windows it extracts the release and runs its `setup`, which replaces the installed program and the extension folder and tells the user whether to click Reload or where the new files are.
+5. **Privacy:**
    * No telemetry, background network requests, or persistent tab history logging to disk. The only network access is the user-invoked `tabwrangler --update`, which downloads a release from GitHub over HTTPS and verifies its SHA-256. Incognito/Private windows are excluded by default unless enabled in the extension settings.
 
 ---

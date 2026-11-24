@@ -156,7 +156,9 @@ func (a *ExtensionAdapter) FocusTab(ctx context.Context, tab types.Tab) error {
 	return nil
 }
 
-// DiscardTabs instructs the extension to discard memory for the specified tabs.
+// DiscardTabs instructs the extension to discard memory for the specified tabs. A tab showing in its
+// window is included: the extension first switches that window to another loaded tab, because a
+// browser cannot discard the tab on screen. Tabs already discarded or without discard support are skipped.
 func (a *ExtensionAdapter) DiscardTabs(ctx context.Context, tabs []types.Tab) (int, int, error) {
 	if a.server == nil || !a.server.IsBrowserConnected(a.browser) {
 		return 0, len(tabs), fmt.Errorf("companion extension not connected for %s", a.browser)

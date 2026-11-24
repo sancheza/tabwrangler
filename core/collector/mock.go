@@ -321,7 +321,7 @@ func (m *MockAdapter) DiscardTabs(ctx context.Context, tabs []types.Tab) (int, i
 
 	for i := range m.tabs {
 		if ids[m.tabs[i].ID] {
-			if !m.tabs[i].Capabilities.CanDiscard || m.tabs[i].IsDiscarded || m.tabs[i].IsActive {
+			if !m.tabs[i].Capabilities.CanDiscard || m.tabs[i].IsDiscarded {
 				skipped++
 			} else {
 				m.tabs[i].IsDiscarded = true
