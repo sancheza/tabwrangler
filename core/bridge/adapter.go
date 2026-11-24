@@ -42,6 +42,14 @@ func (a *ExtensionAdapter) IsAvailable() bool {
 	return false
 }
 
+// ServerError returns any background bridge server start error.
+func (a *ExtensionAdapter) ServerError() error {
+	if a.server != nil {
+		return a.server.StartError()
+	}
+	return nil
+}
+
 // ListTabs fetches the active tab snapshot from the extension, falling back to session files for Firefox.
 func (a *ExtensionAdapter) ListTabs(ctx context.Context) ([]types.Tab, error) {
 	if a.server != nil && a.server.IsBrowserConnected(a.browser) {

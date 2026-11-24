@@ -191,6 +191,10 @@ func Run(binaryPath string, openBrowser bool, customChromeID string) error {
 			return err
 		}
 
+		// Also write portable manifest directly into tabWranglerDir with "path": "tabwrangler.exe"
+		// (guarantees zero spaces in binary path for Chromium process launcher)
+		_, _, _ = writeManifestsWithOrigins(tabWranglerDir, firefoxDir, "tabwrangler.exe", allIDs)
+
 		// Also place manifest directly into Chrome User Data NativeMessagingHosts if folder exists
 		chromeUserDir := filepath.Join(localAppData, "Google", "Chrome", "User Data", "NativeMessagingHosts")
 		_, _, _ = writeManifestsWithOrigins(chromeUserDir, firefoxDir, binaryPath, allIDs)
@@ -260,10 +264,17 @@ func writeManifestsWithOrigins(chromeDir, firefoxDir, binaryPath string, extensi
 		allowedOrigins = append(allowedOrigins, "chrome-extension://"+id+"/")
 	}
 
+	manifestBinPath := binaryPath
+	if runtime.GOOS == "windows" {
+		if rel, err := filepath.Rel(chromeDir, binaryPath); err == nil && !strings.HasPrefix(rel, "..\\..") {
+			manifestBinPath = rel
+		}
+	}
+
 	chromeMF := chromeManifest{
 		Name:           HostName,
 		Description:    "TabWrangler Native Messaging Host Bridge",
-		Path:           binaryPath,
+		Path:           manifestBinPath,
 		Type:           "stdio",
 		AllowedOrigins: allowedOrigins,
 	}
@@ -340,6 +351,9 @@ func copyDir(src, dst string) error {
 	})
 }
 // to automatically discover unpacked extension IDs matching TabWrangler.
+// discoverInstalledExtensionIDs scans Chromium user profile directories (Chrome, Edge, Brave)
+// across all profiles (Default, Profile 1, custom profile names with spaces)
+// to automatically discover unpacked extension IDs matching TabWrangler.
 func discoverInstalledExtensionIDs(localAppData string) []string {
 	var ids []string
 	searchRoots := []string{
@@ -348,11 +362,15 @@ func discoverInstalledExtensionIDs(localAppData string) []string {
 		filepath.Join(localAppData, "BraveSoftware", "Brave-Browser", "User Data"),
 	}
 	for _, root := range searchRoots {
-		prefFiles, _ := filepath.Glob(filepath.Join(root, "Default", "Preferences"))
-		profilePrefs, _ := filepath.Glob(filepath.Join(root, "Profile *", "Preferences"))
-		prefFiles = append(prefFiles, profilePrefs...)
-
-		for _, pf := range prefFiles {
+		entries, err := os.ReadDir(root)
+		if err != nil {
+			continue
+		}
+		for _, entry := range entries {
+			if !entry.IsDir() {
+				continue
+			}
+			pf := filepath.Join(root, entry.Name(), "Preferences")
 			data, err := os.ReadFile(pf)
 			if err != nil {
 				continue

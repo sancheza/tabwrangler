@@ -79,7 +79,11 @@ func (c *Collector) FetchAll(ctx context.Context, timeout time.Duration) ([]type
 	for bType, adapter := range adapters {
 		if !adapter.IsAvailable() {
 			resMu.Lock()
-			adapterErr[bType] = fmt.Errorf("bridge disconnected")
+			if ext, ok := adapter.(interface{ ServerError() error }); ok && ext.ServerError() != nil {
+				adapterErr[bType] = fmt.Errorf("bridge socket error: %w", ext.ServerError())
+			} else {
+				adapterErr[bType] = fmt.Errorf("bridge disconnected")
+			}
 			resMu.Unlock()
 			continue
 		}

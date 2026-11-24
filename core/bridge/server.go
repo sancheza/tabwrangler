@@ -38,6 +38,7 @@ type Server struct {
 	pending     map[string]chan *Response
 	pendingMu   sync.Mutex
 	closed      bool
+	startErr    error
 }
 
 // NewServer initializes a new IPC bridge server.
@@ -76,6 +77,9 @@ func (s *Server) Start(ctx context.Context) error {
 
 	ln, err := net.Listen(network, sockPath)
 	if err != nil {
+		s.mu.Lock()
+		s.startErr = err
+		s.mu.Unlock()
 		return fmt.Errorf("failed to listen on %s (%s): %w", network, sockPath, err)
 	}
 
@@ -192,6 +196,13 @@ func (s *Server) IsBrowserConnected(b types.BrowserType) bool {
 	defer s.mu.RUnlock()
 	_, ok := s.connections[b]
 	return ok
+}
+
+// StartError returns any error encountered during server socket listen.
+func (s *Server) StartError() error {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.startErr
 }
 
 // SendRequest transmits a command to the specified browser extension and awaits response.
