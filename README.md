@@ -2,6 +2,10 @@
 
 TabWrangler is a fast, keyboard-driven Terminal User Interface (TUI) for macOS, Windows, and Linux that provides centralized visibility, telemetry correlation, and lifecycle control over open tabs across Google Chrome, Mozilla Firefox, and Apple Safari.
 
+[![TabWrangler demo: unified tab table, filtering, sorting, hibernate, close, and undo (simulated tab data)](assets/tabwrangler-demo.gif)](assets/tabwrangler-demo.mp4)
+
+*Demo with simulated tab data. [Watch the narrated version (MP4, 85 s)](assets/tabwrangler-demo.mp4).*
+
 > **Quick Start:** To install a pre-built binary and launch TabWrangler in under two minutes without compiling from source, jump down to [3. Quick Start & Installation](#3-quick-start--installation).
 
 ---

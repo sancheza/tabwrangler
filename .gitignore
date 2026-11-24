@@ -16,3 +16,8 @@ cache/
 logs/
 reports/
 outputs/
+
+# Demo build byproducts
+assets/*.contact.png
+assets/*.review.md
+assets/*.transcript.json
