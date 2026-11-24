@@ -101,7 +101,7 @@ Run the `setup` subcommand:
 
 **Windows (Command Prompt or PowerShell):**
 ```cmd
-tabwrangler.exe setup
+.\tabwrangler.exe setup
 ```
 
 Expected output:
@@ -154,7 +154,7 @@ Execute the binary from your terminal:
 
 **Windows:**
 ```cmd
-tabwrangler.exe
+.\tabwrangler.exe
 ```
 
 Expected interface:
