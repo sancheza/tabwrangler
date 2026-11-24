@@ -44,7 +44,7 @@ func IsNativeMessagingInvocation(args []string) bool {
 func RunNativeMessagingBridge() error {
 	sockPath := SocketPath()
 	network := "unix"
-	if strings.Contains(sockPath, ":") {
+	if isTCPAddr(sockPath) {
 		network = "tcp"
 	}
 

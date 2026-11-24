@@ -54,6 +54,10 @@ func NewServerWithPath(sockPath string) *Server {
 	}
 }
 
+func isTCPAddr(addr string) bool {
+	return strings.HasPrefix(addr, "127.0.0.1:") || strings.HasPrefix(addr, "localhost:") || strings.HasPrefix(addr, "0.0.0.0:") || strings.HasPrefix(addr, ":")
+}
+
 // Start begins listening on the local IPC socket or TCP port.
 func (s *Server) Start(ctx context.Context) error {
 	sockPath := s.sockPath
@@ -63,7 +67,7 @@ func (s *Server) Start(ctx context.Context) error {
 	}
 
 	network := "unix"
-	if strings.Contains(sockPath, ":") {
+	if isTCPAddr(sockPath) {
 		network = "tcp"
 	} else {
 		_ = os.Remove(sockPath)
