@@ -256,15 +256,3 @@ When loading the companion extension, browsers prompt for two permissions:
 3. **No Persistent History Stored**: Tab metadata exists in volatile memory only while TabWrangler is running. When you exit (`q`), all tab representations are wiped from memory. No database, SQLite file, or tracking logs of visited sites are maintained on disk.
 4. **Minimal Permission Footprint**: The extension requests strictly `"tabs"` and `"nativeMessaging"`. It declares no `host_permissions` (`<all_urls>`), no `storage` permission, no `webRequest` interception, and no content scripts injected into websites.
 5. **Auditable Source Code**: Both the Go terminal client and the JavaScript extension are open-source. The entire background worker script is contained in a single inspectable file ([extension/background.js](extension/background.js)).
-
----
-
-## 7. Architecture & Engineering Standards
-
-TabWrangler is implemented according to repository and engineering architecture standards:
-- Dev ADR 0001: Architecture Decisions
-- Dev ADR 0002: Standard Repository Layout
-- Dev ADR 0003: Code Placement by Scope
-- Dev ADR 0005: Command-Line Conventions
-- Dev ADR 0020: Terminal Logging & Colors
-- Repo ADR 0001: Cross-Browser TUI Architecture
