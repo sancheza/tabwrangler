@@ -16,7 +16,7 @@ TabWrangler is a fast, keyboard-driven Terminal User Interface (TUI) for macOS, 
 - **Resource Footprint & Honest Telemetry:** Measure tab CPU and RAM on demand, with visual indicators (`~`) distinguishing exact single-tab metrics from shared renderer processes.
 - **Fast Lifecycle Actions:**
   - **Focus (`Enter` / `f`):** Bring any window and tab directly to the foreground.
-  - **Hibernate (`h` / `d`):** Unload idle tabs from memory to reclaim RAM while keeping them open in the browser.
+  - **Hibernate (`h` / `d`):** Unload idle tabs from memory to reclaim RAM while keeping them open in the browser. `h` skips the tab showing in each window, because browsers cannot unload it. **Force hibernate (`H`):** switches that window to another loaded tab first, then unloads the tab.
   - **Close (`c`):** Close single or bulk-selected tabs, guarded by confirmation for batches greater than 3 tabs.
   - **Undo (`u`):** Reopen closed tabs or wake hibernated tabs back into active memory.
 - **Zero Background Polling:** Refreshes on startup, on-demand (`r`), and immediately following user actions.
@@ -180,7 +180,7 @@ Execute the binary from your terminal:
 
 Expected interface:
 ```text
-  TabWrangler v1.0.18                    Tabs: 24 (Filtered: 24)  Selected: 0  Sort: Domain ↑
+  TabWrangler v1.0.19                    Tabs: 24 (Filtered: 24)  Selected: 0  Sort: Domain ↑
   [0] ALL (24)   [1] CHROME (14)   [2] FIREFOX (10)   [3] SAFARI (0)
 
   BROWSER   WINDOW   TAB   TITLE                                  DOMAIN             RAM       CPU      LAST USED
@@ -274,7 +274,7 @@ tabwrangler bridge
 | Flag | Description |
 |:--- |:--- |
 | `-h`, `--help` | Show usage screen with full keyboard shortcut list and exit |
-| `-v`, `--version` | Print application version (`1.0.18`) and exit |
+| `-v`, `--version` | Print application version (`1.0.19`) and exit |
 | `-u`, `--update` | Download and install the latest release from GitHub. With `--dry-run`, check only |
 | `--browser <name>` | Pre-filter initial view: `all`, `chrome`, `firefox`, `safari` (default: `all`) |
 | `--dry-run` | Preview tab focus, discard, and close mutations in terminal without modifying browser state |
@@ -335,6 +335,7 @@ tabwrangler --mock
 | `g` / `G` | Navigation | Jump to top / bottom of tab list |
 | `Enter` or `f` | Actions | Focus tab and bring browser window to the front |
 | `h` or `d` | Actions | Hibernate memory for highlighted tab (or all selected tabs; keeps tab in browser) |
+| `H` | Actions | Force hibernate: also hibernates tabs that are showing in their browser window, by first switching that window to another loaded tab |
 | `c` | Actions | Close highlighted tab (or all selected tabs; asks confirmation if > 3 tabs) |
 | `u` | Actions | Undo last close or hibernate action (reopens closed tabs or wakes hibernated tabs) |
 | `Space` | Selection | Toggle checkbox selection on highlighted tab |

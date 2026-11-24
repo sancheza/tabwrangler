@@ -2,6 +2,20 @@
 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follow [Semantic Versioning](https://semver.org/).
 
+## 1.0.19 - 2026-11-24
+
+### Added
+
+- `H` force-hibernates: it also hibernates tabs that are showing in their browser window. Browsers cannot discard the tab on screen, so the extension first switches that window to the most recently used loaded tab, then discards the original. It never switches to a tab that is already hibernated or is itself being hibernated, and it skips a tab when its window has no other loaded tab.
+
+### Changed
+
+- The message after `h` says which tabs were skipped and why (showing in their window, or already hibernated) and points to `H`.
+
+### Tests
+
+- The extension's tab-switching logic has JavaScript tests (run with Node as part of `go test`).
+
 ## 1.0.18 - 2026-11-24
 
 ### Added

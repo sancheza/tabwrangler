@@ -315,7 +315,7 @@ func (m Model) renderKeybindBar() string {
 		return StyleKeybindBar.Width(m.width).Render(bar)
 	}
 
-	shortcuts := "Enter/f: Focus  |  h/d: Hibernate  |  c: Close  |  u: Undo  |  Space: Select  |  a/A: All/None  |  s: Sort  |  /: Filter  |  r: Refresh  |  ?: Help  |  q: Quit"
+	shortcuts := "Enter/f: Focus  |  h/d: Hibernate (H: force)  |  c: Close  |  u: Undo  |  Space: Select  |  a/A: All/None  |  s: Sort  |  /: Filter  |  r: Refresh  |  ?: Help  |  q: Quit"
 	return StyleKeybindBar.Width(m.width).Render(shortcuts)
 }
 
@@ -356,6 +356,7 @@ Filtering & View:
 Actions:
   Enter or f        Focus tab & raise browser window to front
   h or d            Hibernate / sleep selected tabs (frees RAM, tab stays in browser)
+  H                 Force hibernate: also tabs showing in their window (switches that window to another tab first)
   c                 Close selected tabs (confirms if > 3 tabs)
   u                 Undo last close or hibernate action
   r                 Refresh tab snapshot on demand

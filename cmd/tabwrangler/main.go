@@ -88,6 +88,7 @@ func printUsage() {
 	b.WriteString("  " + cBoldWhite + "Actions:" + cReset + "\n")
 	b.WriteString("    " + cAmber + "Enter" + cReset + " or " + cAmber + "f" + cReset + "     Focus tab and raise browser window to very front of screen\n")
 	b.WriteString("    " + cAmber + "h" + cReset + " or " + cAmber + "d" + cReset + "          Hibernate tab memory (Chrome & Firefox; keeps tab in browser)\n")
+	b.WriteString("    " + cAmber + "H" + cReset + "              Force hibernate: also tabs showing in their window (switches that window to another tab first)\n")
 	b.WriteString("    " + cAmber + "c" + cReset + "              Close highlighted or selected tabs (prompts confirmation for > 3 tabs)\n")
 	b.WriteString("    " + cAmber + "u" + cReset + "              Undo last tab action (reopen closed tab or wake hibernated tab)\n")
 	b.WriteString("  " + cBoldWhite + "Selection:" + cReset + "\n")
