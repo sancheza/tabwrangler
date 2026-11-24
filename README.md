@@ -159,7 +159,7 @@ Execute the binary from your terminal:
 
 Expected interface:
 ```text
-  TabWrangler v1.0.7                     Tabs: 24 (Filtered: 24)  Selected: 0  Sort: Domain ↑
+  TabWrangler v1.0.8                     Tabs: 24 (Filtered: 24)  Selected: 0  Sort: Domain ↑
   [0] ALL (24)   [1] CHROME (14)   [2] FIREFOX (10)   [3] SAFARI (0)
 
   BROWSER   WINDOW   TAB   TITLE                                  DOMAIN             RAM       CPU      LAST USED
@@ -188,7 +188,7 @@ tabwrangler bridge
 | Flag | Description |
 |:--- |:--- |
 | `-h`, `--help` | Show usage screen with full keyboard shortcut list and exit |
-| `-v`, `--version` | Print application version (`1.0.7`) and exit |
+| `-v`, `--version` | Print application version (`1.0.8`) and exit |
 | `--browser <name>` | Pre-filter initial view: `all`, `chrome`, `firefox`, `safari` (default: `all`) |
 | `--dry-run` | Preview tab focus, discard, and close mutations in terminal without modifying browser state |
 | `--mock` | Launch with simulated multi-browser tab data for testing and offline demonstrations |
@@ -236,7 +236,30 @@ tabwrangler --mock
 
 ---
 
-## 6. Architecture & Engineering Standards
+## 6. Privacy & Security Architecture
+
+TabWrangler operates strictly on your local machine with zero external network connectivity or data collection.
+
+### Browser Permissions Breakdown
+
+When loading the companion extension, browsers prompt for two permissions:
+
+| Permission Warning | Technical Permission | Why TabWrangler Needs It | What It Actually Does / Does Not Do |
+|:--- |:--- |:--- |:--- |
+| **"Read your browsing history"** | `"tabs"` | Tab listing, domain aggregation, and switching | **Only inspects currently open tabs** (titles, URLs, active window IDs) so the terminal UI can display them. It **cannot** and **does not** read your past browsing history, search logs, bookmarks, cookies, or cached session data. |
+| **"Communicate with cooperating native applications"** | `"nativeMessaging"` | Local loopback bridge communication | Sends open tab metadata directly to the local TabWrangler process on your machine via standard OS standard input/output pipes. It **does not** communicate with any remote servers or third-party applications. |
+
+### Security & Data Handling Guarantees
+
+1. **Zero External Network Requests**: The companion extension contains no `fetch()`, `XMLHttpRequest`, analytics libraries, or telemetry calls. The Go TUI contains no outbound HTTP/HTTPS client routines.
+2. **Localhost Only**: Communication between the browser extension and TabWrangler uses standard WebExtension Native Messaging (`stdin`/`stdout` managed directly by the browser executable) and an ephemeral, loopback-only TCP socket (`127.0.0.1`) that binds exclusively to local interface addresses.
+3. **No Persistent History Stored**: Tab metadata exists in volatile memory only while TabWrangler is running. When you exit (`q`), all tab representations are wiped from memory. No database, SQLite file, or tracking logs of visited sites are maintained on disk.
+4. **Minimal Permission Footprint**: The extension requests strictly `"tabs"` and `"nativeMessaging"`. It declares no `host_permissions` (`<all_urls>`), no `storage` permission, no `webRequest` interception, and no content scripts injected into websites.
+5. **Auditable Source Code**: Both the Go terminal client and the JavaScript extension are open-source. The entire background worker script is contained in a single inspectable file ([extension/background.js](extension/background.js)).
+
+---
+
+## 7. Architecture & Engineering Standards
 
 TabWrangler is implemented according to repository and engineering architecture standards:
 - Dev ADR 0001: Architecture Decisions
