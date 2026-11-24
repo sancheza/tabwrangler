@@ -4,7 +4,10 @@
 package browser
 
 import (
+	"context"
+	"os"
 	"os/exec"
+	"time"
 
 	"github.com/sancheza/tabwrangler/core/types"
 )
@@ -12,6 +15,10 @@ import (
 // ActivateBrowserApplication raises the specified browser application to the very front on macOS,
 // ensuring it appears in front of the terminal window.
 func ActivateBrowserApplication(b types.BrowserType) {
+	if os.Getenv("CI") != "" {
+		return
+	}
+
 	var appName string
 	switch b {
 	case types.BrowserFirefox:
@@ -24,5 +31,8 @@ func ActivateBrowserApplication(b types.BrowserType) {
 		return
 	}
 
-	_ = exec.Command("osascript", "-e", `tell application "`+appName+`" to activate`).Run()
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	_ = exec.CommandContext(ctx, "osascript", "-e", `tell application "`+appName+`" to activate`).Run()
 }
