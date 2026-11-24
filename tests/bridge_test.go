@@ -10,6 +10,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 
@@ -189,15 +190,18 @@ func TestBridgeServerRejectsMissingOrWrongToken(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Expected token file: %v", err)
 	}
-	if info.Mode().Perm() != 0600 {
-		t.Errorf("Expected token file mode 0600, got %v", info.Mode().Perm())
-	}
 	sockInfo, err := os.Stat(testSock)
 	if err != nil {
 		t.Fatalf("Expected socket file: %v", err)
 	}
-	if sockInfo.Mode().Perm() != 0600 {
-		t.Errorf("Expected socket mode 0600, got %v", sockInfo.Mode().Perm())
+	// Windows reports 0666 for every file; access there is controlled by the per-user directory.
+	if runtime.GOOS != "windows" {
+		if info.Mode().Perm() != 0600 {
+			t.Errorf("Expected token file mode 0600, got %v", info.Mode().Perm())
+		}
+		if sockInfo.Mode().Perm() != 0600 {
+			t.Errorf("Expected socket mode 0600, got %v", sockInfo.Mode().Perm())
+		}
 	}
 
 	for _, reg := range []string{
