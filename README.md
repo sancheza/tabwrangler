@@ -150,6 +150,9 @@ Objective: Install the unpacked Manifest V3 companion extension in your browser.
 4. Select the `extension/` folder in the file dialog (or paste the path already on your clipboard into the folder selection bar).
 5. Confirm that **TabWrangler Companion** appears in your extension list with no error badges.
 
+> [!NOTE]
+> Chrome may show the warning `'background.scripts' requires manifest version of 2 or lower`. It is harmless. The manifest lists both `service_worker` (used by Chrome and Edge) and `scripts` (used by Firefox) so one extension folder works in every browser. Each browser ignores the key it does not support.
+
 #### Mozilla Firefox:
 1. Open Firefox and navigate to `about:debugging#/runtime/this-firefox` in your address bar.
 2. Click the **Load Temporary Add-on...** button in the top right.
