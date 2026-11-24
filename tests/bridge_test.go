@@ -8,6 +8,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -78,7 +80,7 @@ func TestIsNativeMessagingInvocation(t *testing.T) {
 }
 
 func TestBridgeServerRegistrationAndDispatch(t *testing.T) {
-	testSock := fmt.Sprintf("/tmp/tabwrangler-test-%d.sock", time.Now().UnixNano())
+	testSock := filepath.Join(os.TempDir(), fmt.Sprintf("tabwrangler-test-%d.sock", time.Now().UnixNano()))
 	server := bridge.NewServerWithPath(testSock)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

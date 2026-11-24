@@ -52,10 +52,14 @@ func computeExtensionID(keyBase64 string) (string, error) {
 
 func TestChromeManifestV3Compliance(t *testing.T) {
 	manifestPath := filepath.Join("..", "extension", "manifest.json")
+	if _, err := os.Stat(manifestPath); os.IsNotExist(err) {
+		manifestPath = filepath.Join("extension", "manifest.json")
+	}
 	data, err := os.ReadFile(manifestPath)
 	if err != nil {
 		t.Fatalf("failed reading extension manifest: %v", err)
 	}
+	baseDir := filepath.Dir(manifestPath)
 
 	var m manifestV3
 	if err := json.Unmarshal(data, &m); err != nil {
@@ -76,7 +80,7 @@ func TestChromeManifestV3Compliance(t *testing.T) {
 	if m.Background.ServiceWorker == "" {
 		t.Errorf("manifest background.service_worker must be specified")
 	} else {
-		swPath := filepath.Join("..", "extension", m.Background.ServiceWorker)
+		swPath := filepath.Join(baseDir, m.Background.ServiceWorker)
 		if _, err := os.Stat(swPath); err != nil {
 			t.Errorf("service worker file %s does not exist: %v", swPath, err)
 		}
@@ -99,7 +103,7 @@ func TestChromeManifestV3Compliance(t *testing.T) {
 
 	// 5. Icons must exist on disk
 	for size, iconRel := range m.Icons {
-		iconPath := filepath.Join("..", "extension", iconRel)
+		iconPath := filepath.Join(baseDir, iconRel)
 		if _, err := os.Stat(iconPath); err != nil {
 			t.Errorf("icon (%s) at %s does not exist: %v", size, iconPath, err)
 		}
