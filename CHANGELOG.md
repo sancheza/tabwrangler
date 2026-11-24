@@ -2,6 +2,13 @@
 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follow [Semantic Versioning](https://semver.org/).
 
+## 1.0.17 - 2026-11-24
+
+### Added
+
+- `tabwrangler --update` (`-u`) installs the latest release from GitHub. `--dry-run` checks without installing. Downloads are verified against the release's `SHA256SUMS` file; a release without it is refused. On Windows the update runs `setup`, which also updates the extension folder.
+- Releases include a `SHA256SUMS` file (`make checksums`).
+
 ## 1.0.16 - 2026-11-24
 
 ### Fixed

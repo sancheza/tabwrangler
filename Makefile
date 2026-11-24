@@ -1,7 +1,7 @@
-.PHONY: all build build-windows package-windows build-all test clean
+.PHONY: all build build-windows package-windows build-all checksums test clean
 
 BINARY_NAME=tabwrangler
-VERSION=1.0.16
+VERSION=1.0.17
 
 all: test build
 
@@ -28,6 +28,9 @@ build-all:
 	GOOS=linux   GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o bin/$(BINARY_NAME)-linux-amd64  ./cmd/tabwrangler
 	GOOS=linux   GOARCH=arm64 go build -trimpath -ldflags="-s -w" -o bin/$(BINARY_NAME)-linux-arm64  ./cmd/tabwrangler
 	GOOS=windows GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o bin/$(BINARY_NAME).exe         ./cmd/tabwrangler
+
+checksums:
+	cd bin && shasum -a 256 $(BINARY_NAME)-darwin-arm64 $(BINARY_NAME)-darwin-amd64 $(BINARY_NAME)-linux-amd64 $(BINARY_NAME)-linux-arm64 $(BINARY_NAME)-windows-amd64.zip $(BINARY_NAME).exe > SHA256SUMS
 
 test:
 	go test -v ./...

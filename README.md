@@ -180,7 +180,7 @@ Execute the binary from your terminal:
 
 Expected interface:
 ```text
-  TabWrangler v1.0.16                    Tabs: 24 (Filtered: 24)  Selected: 0  Sort: Domain ↑
+  TabWrangler v1.0.17                    Tabs: 24 (Filtered: 24)  Selected: 0  Sort: Domain ↑
   [0] ALL (24)   [1] CHROME (14)   [2] FIREFOX (10)   [3] SAFARI (0)
 
   BROWSER   WINDOW   TAB   TITLE                                  DOMAIN             RAM       CPU      LAST USED
@@ -198,7 +198,19 @@ Expected interface:
 
 Objective: Update an existing TabWrangler installation to the latest version.
 
-#### Option A: One-Command Upgrade (macOS & Linux)
+#### Option A: Built-In Update (all platforms)
+
+Run the update command. It finds the latest release, verifies the download against the release's `SHA256SUMS` file, and replaces the installed program. On Windows it also runs `setup`, which updates the installed program and extension folder in `%LOCALAPPDATA%\TabWrangler\`.
+
+```bash
+tabwrangler --update
+```
+
+> [!NOTE]
+> The update command works from the first release that includes it (v1.0.17). Earlier versions use Option B or C.
+> If the program is in a folder that needs administrator rights, such as `/usr/local/bin`, run `sudo tabwrangler --update`.
+
+#### Option B: One-Command Upgrade (macOS & Linux)
 
 Run the installer to download the latest release binary and atomically replace `~/.local/bin/tabwrangler`:
 
@@ -206,7 +218,7 @@ Run the installer to download the latest release binary and atomically replace `
 curl -fsSL https://raw.githubusercontent.com/sancheza/tabwrangler/main/install.sh | bash
 ```
 
-#### Option B: Manual Binary Replacement
+#### Option C: Manual Binary Replacement
 
 1. Download the latest binary for your operating system from the [Releases page](https://github.com/sancheza/tabwrangler/releases/latest).
 2. Replace your existing binary:
@@ -221,7 +233,7 @@ cp tabwrangler-darwin-arm64 ~/.local/bin/tabwrangler.new && mv -f ~/.local/bin/t
 .\tabwrangler.exe setup
 ```
 
-#### Option C: Build from Source
+#### Option D: Build from Source
 
 Pull the latest release and compile:
 
@@ -253,6 +265,7 @@ Run `tabwrangler -h` or `tabwrangler --help` to view all command options:
 ```bash
 tabwrangler [flags]
 tabwrangler setup [--open] [--chrome-id <id>]
+tabwrangler -u [--dry-run]
 tabwrangler bridge
 ```
 
@@ -261,7 +274,8 @@ tabwrangler bridge
 | Flag | Description |
 |:--- |:--- |
 | `-h`, `--help` | Show usage screen with full keyboard shortcut list and exit |
-| `-v`, `--version` | Print application version (`1.0.16`) and exit |
+| `-v`, `--version` | Print application version (`1.0.17`) and exit |
+| `-u`, `--update` | Download and install the latest release from GitHub. With `--dry-run`, check only |
 | `--browser <name>` | Pre-filter initial view: `all`, `chrome`, `firefox`, `safari` (default: `all`) |
 | `--dry-run` | Preview tab focus, discard, and close mutations in terminal without modifying browser state |
 | `--mock` | Launch with simulated multi-browser tab data for testing and offline demonstrations |
@@ -271,6 +285,24 @@ tabwrangler bridge
 Launch pre-filtered to Firefox tabs only:
 ```bash
 tabwrangler --browser firefox
+```
+
+Update to the latest release:
+```bash
+tabwrangler --update
+```
+
+Expected output:
+```
+New version available: 1.0.18 (installed: 1.0.17).
+Downloading tabwrangler-darwin-arm64...
+Checksum verified.
+[OK] Updated /Users/you/.local/bin/tabwrangler to 1.0.18.
+```
+
+Check for a newer release without installing it:
+```bash
+tabwrangler --update --dry-run
 ```
 
 Preview mutations safely without closing or discarding tabs:
@@ -323,7 +355,7 @@ tabwrangler --mock
 
 ## 6. Privacy & Security Architecture
 
-We take security and privacy very seriously. TabWrangler operates strictly on your local machine with zero external network connectivity or data collection. While we encourage you to review the source code directly, we want to be completely transparent about the specific permissions required and why they are necessary.
+We take security and privacy very seriously. TabWrangler operates on your local machine and collects no data. Its only network request is the optional `tabwrangler --update` command, which contacts github.com when you run it. While we encourage you to review the source code directly, we want to be completely transparent about the specific permissions required and why they are necessary.
 
 ### Browser Permissions Breakdown
 
@@ -336,7 +368,7 @@ When loading the companion extension, browsers prompt for two permissions:
 
 ### Security & Data Handling Guarantees
 
-1. **Zero External Network Requests**: The companion extension contains no `fetch()`, `XMLHttpRequest`, analytics libraries, or telemetry calls. The Go TUI contains no outbound HTTP/HTTPS client routines.
+1. **No Background Network Requests**: The companion extension contains no `fetch()`, `XMLHttpRequest`, analytics libraries, or telemetry calls. The Go TUI makes no network requests while you use it. `tabwrangler --update` contacts `api.github.com` and `github.com` over HTTPS, only when you run it, and refuses to install a download that does not match the release's `SHA256SUMS` file.
 2. **Localhost Only**: Communication between the browser extension and TabWrangler uses standard WebExtension Native Messaging (`stdin`/`stdout` managed directly by the browser executable) and a local IPC channel: a Unix domain socket (mode `0600`) on macOS/Linux, or a loopback-only TCP port (`127.0.0.1:42823`) on Windows.
 3. **Authenticated IPC**: Each run generates a random 256-bit token, stored in an owner-only (`0600`) file. The native messaging host reads it and presents it when registering; connections without the correct token are rejected. The token file is deleted on exit.
 4. **No Persistent History Stored**: Tab metadata exists in volatile memory only while TabWrangler is running. When you exit (`q`), all tab representations are wiped from memory. No database, SQLite file, or record of visited sites is written to disk.

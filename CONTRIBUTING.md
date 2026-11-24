@@ -57,10 +57,25 @@ ok  	github.com/sancheza/tabwrangler/tests
 | Dependencies | Declared in `go.mod`. Never installed at runtime. |
 | Versions | `core/types/version.go`, `extension/manifest.json`, `install.sh`, and `Makefile` carry the same version. |
 
-## 5. License of Contributions
+## 5. Releasing
+
+Maintainers only.
+
+1. Update the version in `core/types/version.go`, `extension/manifest.json`, `install.sh`, `Makefile`, and the README, and move the changelog's Unreleased entries under the new version.
+2. Build and checksum:
+   ```bash
+   go test ./... && rm -rf bin && make build-all package-windows checksums
+   ```
+3. Tag and publish, attaching every file in `bin/` including `SHA256SUMS`. `tabwrangler --update` refuses a release without it:
+   ```bash
+   git tag vX.Y.Z && git push origin main vX.Y.Z
+   gh release create vX.Y.Z bin/*
+   ```
+
+## 6. License of Contributions
 
 By submitting a contribution, you agree that it is licensed under the [PolyForm Noncommercial License 1.0.0](LICENSE) and that the project owner may also offer it under a separate commercial license.
 
-## 6. Security Issues
+## 7. Security Issues
 
 Report vulnerabilities privately. See [SECURITY.md](SECURITY.md).

@@ -6,7 +6,7 @@
 #   curl -fsSL https://raw.githubusercontent.com/sancheza/tabwrangler/main/install.sh | bash
 #   install.sh [-h|--help] [-v|--version] [--dry-run] [--prefix DIR]
 
-VERSION="1.0.16"
+VERSION="1.0.17"
 
 set -euo pipefail
 

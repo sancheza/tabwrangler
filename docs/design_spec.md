@@ -169,7 +169,7 @@ Users can inspect every open tab's metadata and resource footprint on demand, fi
 3. **Windows Packaging:**
    * `tabwrangler setup` registers Native Messaging host registry keys under `HKCU\Software\Google\Chrome\NativeMessagingHosts\` and `HKCU\Software\Mozilla\NativeMessagingHosts\` without requiring Administrator privileges.
 4. **Privacy:**
-   * No telemetry, external network requests, or persistent tab history logging to disk. Incognito/Private windows are excluded by default unless enabled in the extension settings.
+   * No telemetry, background network requests, or persistent tab history logging to disk. The only network access is the user-invoked `tabwrangler --update`, which downloads a release from GitHub over HTTPS and verifies its SHA-256. Incognito/Private windows are excluded by default unless enabled in the extension settings.
 
 ---
 

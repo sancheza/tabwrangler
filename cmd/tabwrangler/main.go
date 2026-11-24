@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/sancheza/tabwrangler/core/bridge"
@@ -17,6 +18,7 @@ import (
 	"github.com/sancheza/tabwrangler/core/setup"
 	"github.com/sancheza/tabwrangler/core/tui"
 	"github.com/sancheza/tabwrangler/core/types"
+	"github.com/sancheza/tabwrangler/core/update"
 )
 
 const Version = types.Version
@@ -73,6 +75,7 @@ func printUsage() {
 	b.WriteString(cBoldCyan + "FLAGS:\n" + cReset)
 	b.WriteString("  " + cCyan + "-h, --help" + cReset + "          Show this help screen and exit\n")
 	b.WriteString("  " + cCyan + "-v, --version" + cReset + "       Print version information (" + Version + ") and exit\n")
+	b.WriteString("  " + cCyan + "-u, --update" + cReset + "         Download and install the latest release from GitHub (with " + cCyan + "--dry-run" + cReset + ": check only)\n")
 	b.WriteString("      " + cCyan + "--browser" + cReset + " " + cAmber + "<name>" + cReset + "  Filter initial view: " + cAmber + "all" + cReset + ", " + cAmber + "chrome" + cReset + ", " + cAmber + "firefox" + cReset + ", " + cAmber + "safari" + cReset + " (default: all)\n")
 	b.WriteString("      " + cCyan + "--mock" + cReset + "          Launch with simulated multi-browser tab data for testing and demos\n")
 	b.WriteString("      " + cCyan + "--dry-run" + cReset + "       Preview tab focus, discard, and close mutations without modifying state\n\n")
@@ -137,6 +140,8 @@ func main() {
 		versionFlagLong  bool
 		helpFlagShort    bool
 		helpFlagLong     bool
+		updateFlagShort  bool
+		updateFlagLong   bool
 		browserFlag      string
 		mockFlag         bool
 		dryRunFlag       bool
@@ -150,6 +155,8 @@ func main() {
 	fs.BoolVar(&versionFlagLong, "version", false, "Print version")
 	fs.BoolVar(&helpFlagShort, "h", false, "Show help")
 	fs.BoolVar(&helpFlagLong, "help", false, "Show help")
+	fs.BoolVar(&updateFlagShort, "u", false, "Update to the latest release")
+	fs.BoolVar(&updateFlagLong, "update", false, "Update to the latest release")
 	fs.StringVar(&browserFlag, "browser", "all", "Filter initial browser")
 	fs.BoolVar(&mockFlag, "mock", false, "Run with mock provider")
 	fs.BoolVar(&dryRunFlag, "dry-run", false, "Report mutations without modifying state")
@@ -200,6 +207,21 @@ func main() {
 
 	if helpFlagShort || helpFlagLong {
 		printUsage()
+		os.Exit(0)
+	}
+
+	if updateFlagShort || updateFlagLong {
+		exe, err := os.Executable()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Update failed: cannot locate the running program: %v\n", err)
+			os.Exit(1)
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+		defer cancel()
+		if err := update.New(os.Stdout).Run(ctx, Version, exe, dryRunFlag); err != nil {
+			fmt.Fprintf(os.Stderr, "Update failed: %v\n", err)
+			os.Exit(1)
+		}
 		os.Exit(0)
 	}
 
