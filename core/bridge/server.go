@@ -80,8 +80,10 @@ func (s *Server) Start(ctx context.Context) error {
 		s.mu.Lock()
 		s.startErr = err
 		s.mu.Unlock()
+		Log("Server.Start failed to listen on %s (%s): %v", network, sockPath, err)
 		return fmt.Errorf("failed to listen on %s (%s): %w", network, sockPath, err)
 	}
+	Log("Server.Start listening on %s (%s)", network, sockPath)
 
 	if network == "unix" && runtime.GOOS != "windows" {
 		// Enforce strict 0600 permissions
@@ -134,22 +136,26 @@ func (s *Server) acceptLoop() {
 }
 
 func (s *Server) handleConn(conn net.Conn) {
+	Log("Server.handleConn accepted connection from %s", conn.RemoteAddr())
 	reader := bufio.NewReader(conn)
 
 	// First message should be registration
 	line, err := reader.ReadBytes('\n')
 	if err != nil {
+		Log("Server.handleConn failed reading registration: %v", err)
 		_ = conn.Close()
 		return
 	}
 
 	var regMsg Request
 	if err := json.Unmarshal(line, &regMsg); err != nil || regMsg.Action != ActionRegister {
+		Log("Server.handleConn invalid registration payload: %s, err: %v", string(line), err)
 		_ = conn.Close()
 		return
 	}
 
 	browser := regMsg.Browser
+	Log("Server.handleConn registered browser: %s", browser)
 	s.mu.Lock()
 	if old, exists := s.connections[browser]; exists {
 		_ = old.Close()
@@ -158,6 +164,7 @@ func (s *Server) handleConn(conn net.Conn) {
 	s.mu.Unlock()
 
 	defer func() {
+		Log("Server.handleConn disconnected browser: %s", browser)
 		s.mu.Lock()
 		if s.connections[browser] == conn {
 			delete(s.connections, browser)

@@ -47,6 +47,7 @@ func RunNativeMessagingBridge() error {
 	if isTCPAddr(sockPath) {
 		network = "tcp"
 	}
+	Log("RunNativeMessagingBridge started: sockPath=%s network=%s", sockPath, network)
 
 	// Buffer messages from browser stdin while waiting for TUI IPC connection
 	inMessages := make(chan []byte, 100)
@@ -58,11 +59,14 @@ func RunNativeMessagingBridge() error {
 		for {
 			payload, err := ReadNativeMessage(os.Stdin)
 			if err != nil {
+				Log("Browser stdin closed/error: %v", err)
 				return
 			}
+			Log("Received native message on stdin (len=%d): %s", len(payload), string(payload))
 			select {
 			case inMessages <- payload:
 			default:
+				Log("Warning: inMessages channel full, dropping message")
 			}
 		}
 	}()
@@ -73,11 +77,12 @@ func RunNativeMessagingBridge() error {
 	for {
 		conn, err = net.Dial(network, sockPath)
 		if err == nil {
+			Log("Bridge connected to local IPC server at %s", sockPath)
 			break
 		}
 		select {
 		case <-stdinClosed:
-			// Browser closed pipe (e.g. extension unloaded or browser exited)
+			Log("Browser closed pipe before TUI connected, exiting bridge")
 			return nil
 		case <-time.After(500 * time.Millisecond):
 		}
@@ -97,7 +102,9 @@ func RunNativeMessagingBridge() error {
 			if len(line) == 0 {
 				continue
 			}
+			Log("Forwarding response from TUI to browser stdout (len=%d)", len(line))
 			if err := WriteNativeMessage(os.Stdout, line); err != nil {
+				Log("Error writing native message to stdout: %v", err)
 				return
 			}
 		}
@@ -115,7 +122,9 @@ func RunNativeMessagingBridge() error {
 				// Ensure newline delimited for the IPC socket
 				var js json.RawMessage
 				if err := json.Unmarshal(payload, &js); err == nil {
+					Log("Forwarding stdin payload to TUI IPC socket: %s", string(payload))
 					if _, err := conn.Write(append(payload, '\n')); err != nil {
+						Log("Error writing payload to IPC socket: %v", err)
 						return
 					}
 				}

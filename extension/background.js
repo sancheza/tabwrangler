@@ -22,9 +22,11 @@ function connectNative() {
 
   try {
     const api = (typeof browser !== "undefined" && browser.runtime) ? browser.runtime : chrome.runtime;
+    console.log("[TabWrangler] Attempting connectNative to:", HOST_NAME);
     nativePort = api.connectNative(HOST_NAME);
 
     nativePort.onMessage.addListener((message) => {
+      console.log("[TabWrangler] Received native message:", message);
       handleRequest(message);
     });
 
@@ -32,20 +34,21 @@ function connectNative() {
       // Access lastError to clear error state and prevent Chrome "Unchecked runtime.lastError" errors
       const lastErr = (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.lastError) ||
                       (typeof browser !== "undefined" && browser.runtime && browser.runtime.lastError);
-      if (lastErr) {
-        console.warn("[TabWrangler] Native bridge disconnected:", lastErr.message);
-      }
+      console.warn("[TabWrangler] Native bridge disconnected. lastError message:", lastErr ? lastErr.message : "none");
       nativePort = null;
       clearTimeout(reconnectTimer);
       reconnectTimer = setTimeout(connectNative, 3000);
     });
 
     // Send initial registration handshake
+    const bType = detectBrowser();
+    console.log("[TabWrangler] Sending registration handshake for:", bType);
     nativePort.postMessage({
       action: "register",
-      browser: detectBrowser()
+      browser: bType
     });
   } catch (err) {
+    console.error("[TabWrangler] Exception in connectNative:", err);
     clearTimeout(reconnectTimer);
     reconnectTimer = setTimeout(connectNative, 2000);
   }
