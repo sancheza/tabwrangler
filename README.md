@@ -42,7 +42,19 @@ TabWrangler is a fast, keyboard-driven Terminal User Interface (TUI) for macOS, 
 
 ## 3. Quick Start & Installation
 
-### 3.1 Option A: Download Pre-Compiled Binary
+### 3.1 One-Command Automated Installation (macOS & Linux)
+
+Install the pre-compiled binary and automatically configure browser native messaging manifests in a single command:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/sancheza/tabwrangler/main/install.sh | bash
+```
+
+The script automatically detects your OS and CPU architecture (Apple Silicon, Intel x86_64, ARM64), downloads the latest binary to `~/.local/bin/tabwrangler`, and registers the native messaging manifests.
+
+---
+
+### 3.2 Manual Installation: Pre-Compiled Binaries
 
 Download the archive for your operating system from the [Latest Release](https://github.com/sancheza/tabwrangler/releases/latest):
 
@@ -76,7 +88,7 @@ mv tabwrangler-linux-* tabwrangler
 
 After preparing the binary, proceed to [3.3 Register Native Messaging Host](#33-register-native-messaging-host).
 
-### 3.2 Option B: Build from Source
+### 3.3 Option B: Build from Source
 
 Objective: Compile the application binary directly from the Git repository.
 
