@@ -12,8 +12,9 @@ TabWrangler is a fast, keyboard-driven Terminal User Interface (TUI) for macOS, 
 - **Resource Footprint & Honest Telemetry:** Measure tab CPU and RAM on demand, with visual indicators (`~`) distinguishing exact single-tab metrics from shared renderer processes.
 - **Fast Lifecycle Actions:**
   - **Focus (`Enter` / `f`):** Bring any window and tab directly to the foreground.
-  - **Discard (`d`):** Unload idle tabs from memory to reclaim RAM while keeping them open in the browser.
+  - **Hibernate (`h` / `d`):** Unload idle tabs from memory to reclaim RAM while keeping them open in the browser.
   - **Close (`c`):** Close single or bulk-selected tabs, guarded by confirmation for batches greater than 3 tabs.
+  - **Undo (`u`):** Reopen closed tabs or wake hibernated tabs back into active memory.
 - **Zero Background Polling:** Refreshes on startup, on-demand (`r`), and immediately following user actions.
 - **Internal Tab Filtering:** Filters `chrome://*`, `about:*`, and blank tabs by default; toggled instantly with `t`.
 
@@ -88,7 +89,7 @@ mv tabwrangler-linux-* tabwrangler
 
 After preparing the binary, proceed to [3.3 Register Native Messaging Host](#33-register-native-messaging-host).
 
-### 3.3 Option B: Build from Source
+### 3.3 Build from Source
 
 Objective: Compile the application binary directly from the Git repository.
 
@@ -100,7 +101,7 @@ go build -o tabwrangler ./cmd/tabwrangler
 
 Expected output: An executable binary `tabwrangler` (or `tabwrangler.exe` on Windows) generated in the current directory.
 
-### 3.3 Register Native Messaging Host
+### 3.4 Register Native Messaging Host
 
 Objective: Register TabWrangler with the host operating system and browsers so companion extensions can establish local IPC communication.
 
@@ -134,7 +135,7 @@ Expected output:
 
 The setup command places the binary into a persistent application directory (`%LOCALAPPDATA%\TabWrangler\` on Windows) and copies the path to the `extension/` folder directly to your clipboard.
 
-### 3.4 Load Companion Extension into Browsers
+### 3.5 Load Companion Extension into Browsers
 
 Objective: Install the unpacked Manifest V3 companion extension in your browser.
 
@@ -154,7 +155,7 @@ Objective: Install the unpacked Manifest V3 companion extension in your browser.
 #### Apple Safari:
 No extension installation is needed. Safari tabs are read and controlled directly via macOS AppleScript automation. If prompted on first launch, click **OK** in macOS System Settings to grant automation permission.
 
-### 3.5 Launch for the First Time
+### 3.6 Launch for the First Time
 
 Objective: Launch the interactive terminal UI and inspect your tabs.
 
@@ -183,6 +184,52 @@ Expected interface:
   ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
   [Enter/f] Focus   [h/d] Hibernate   [c] Close   [u] Undo   [/] Filter   [s] Sort   [t] Internal   [r] Refresh   [q] Quit
 ```
+
+---
+
+### 3.7 Upgrading TabWrangler
+
+Objective: Update an existing TabWrangler installation to the latest version.
+
+#### Option A: One-Command Upgrade (macOS & Linux)
+
+Run the installer to download the latest release binary and atomically replace `~/.local/bin/tabwrangler`:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/sancheza/tabwrangler/main/install.sh | bash
+```
+
+#### Option B: Manual Binary Replacement
+
+1. Download the latest binary for your operating system from the [Releases page](https://github.com/sancheza/tabwrangler/releases/latest).
+2. Replace your existing binary:
+
+**macOS / Linux:**
+```bash
+cp tabwrangler-darwin-arm64 ~/.local/bin/tabwrangler.new && mv -f ~/.local/bin/tabwrangler.new ~/.local/bin/tabwrangler
+```
+
+**Windows (Command Prompt):**
+```cmd
+copy /Y tabwrangler.exe %LOCALAPPDATA%\TabWrangler\tabwrangler.exe
+```
+
+#### Option C: Build from Source
+
+Pull the latest release and compile:
+
+```bash
+git pull origin main
+go build -o tabwrangler ./cmd/tabwrangler
+cp tabwrangler ~/.local/bin/tabwrangler
+```
+
+#### Reloading Companion Extensions
+
+When an upgrade updates the companion WebExtension in `extension/`:
+- **Chrome / Edge / Brave:** Open `chrome://extensions` and click the **Reload** (circular arrow) icon on the TabWrangler Companion card.
+- **Firefox:** Open `about:debugging#/runtime/this-firefox` and click **Reload** under TabWrangler Companion.
+- **Safari:** No action required; native automation updates with the CLI binary.
 
 ---
 
