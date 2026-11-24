@@ -324,7 +324,41 @@ When loading the companion extension, browsers prompt for two permissions:
 ### Security & Data Handling Guarantees
 
 1. **Zero External Network Requests**: The companion extension contains no `fetch()`, `XMLHttpRequest`, analytics libraries, or telemetry calls. The Go TUI contains no outbound HTTP/HTTPS client routines.
-2. **Localhost Only**: Communication between the browser extension and TabWrangler uses standard WebExtension Native Messaging (`stdin`/`stdout` managed directly by the browser executable) and an ephemeral, loopback-only TCP socket (`127.0.0.1`) that binds exclusively to local interface addresses.
-3. **No Persistent History Stored**: Tab metadata exists in volatile memory only while TabWrangler is running. When you exit (`q`), all tab representations are wiped from memory. No database, SQLite file, or tracking logs of visited sites are maintained on disk.
-4. **Minimal Permission Footprint**: The extension requests strictly `"tabs"` and `"nativeMessaging"`. It declares no `host_permissions` (`<all_urls>`), no `storage` permission, no `webRequest` interception, and no content scripts injected into websites.
-5. **Auditable Source Code**: Both the Go terminal client and the JavaScript extension are open-source. The entire background worker script is contained in a single inspectable file ([extension/background.js](extension/background.js)).
+2. **Localhost Only**: Communication between the browser extension and TabWrangler uses standard WebExtension Native Messaging (`stdin`/`stdout` managed directly by the browser executable) and a local IPC channel: a Unix domain socket (mode `0600`) on macOS/Linux, or a loopback-only TCP port (`127.0.0.1:42823`) on Windows.
+3. **Authenticated IPC**: Each run generates a random 256-bit token, stored in an owner-only (`0600`) file. The native messaging host reads it and presents it when registering; connections without the correct token are rejected. The token file is deleted on exit.
+4. **No Persistent History Stored**: Tab metadata exists in volatile memory only while TabWrangler is running. When you exit (`q`), all tab representations are wiped from memory. No database, SQLite file, or record of visited sites is written to disk.
+5. **Minimal Permission Footprint**: The extension requests strictly `"tabs"` and `"nativeMessaging"`. It declares no `host_permissions` (`<all_urls>`), no `storage` permission, no `webRequest` interception, and no content scripts injected into websites.
+6. **Auditable Source Code**: Both the Go terminal client and the JavaScript extension are open-source. The entire background worker script is contained in a single inspectable file ([extension/background.js](extension/background.js)).
+
+### Files Written to Disk
+
+| File | Location | Mode | Contents |
+|:--- |:--- |:--- |:--- |
+| IPC socket | `/tmp/tabwrangler-<uid>.sock` (macOS/Linux) | `0600` | None (local socket) |
+| IPC token | `/tmp/tabwrangler-<uid>.sock.token` (macOS/Linux), `%LOCALAPPDATA%\TabWrangler\bridge.token` (Windows) | `0600` | Random per-run token; deleted on exit |
+| Diagnostic log | `/tmp/tabwrangler-<uid>.log` (macOS/Linux), `%LOCALAPPDATA%\TabWrangler\tabwrangler.log` (Windows) | `0600` | Timestamps, process IDs, connection events, message sizes. No tab titles or URLs. |
+| Native messaging manifests | Browser-specific `NativeMessagingHosts` directories | `0644` | Binary path and allowed extension IDs |
+
+The diagnostic log grows over time. Delete it at any time:
+
+```bash
+rm /tmp/tabwrangler-$(id -u).log
+```
+
+---
+
+## 7. Reporting Security Issues
+
+See [SECURITY.md](SECURITY.md).
+
+---
+
+## 8. Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md). Release history is in [CHANGELOG.md](CHANGELOG.md).
+
+---
+
+## 9. License
+
+See [LICENSE](LICENSE).

@@ -163,7 +163,7 @@ Users can inspect every open tab's metadata and resource footprint on demand, fi
 ## 7. Security, Permissions & Packaging
 
 1. **Local-Only IPC:**
-   * Companion extensions communicate exclusively via browser-managed Native Messaging manifests (`com.tabwrangler.bridge.json`) and a user-scoped Unix domain socket (`/tmp/tabwrangler-$UID.sock` with `0600` permissions on macOS) or user-ACL Named Pipe (`\\.\pipe\tabwrangler-<user>` on Windows). No open TCP ports.
+   * Companion extensions communicate exclusively via browser-managed Native Messaging manifests (`com.tabwrangler.bridge.json`) and a user-scoped Unix domain socket (`/tmp/tabwrangler-$UID.sock` with `0600` permissions on macOS) or a loopback-only TCP port (`127.0.0.1:42823`) on Windows. Each TabWrangler run generates a random token, stored in an owner-only file, that the native messaging host must present when it registers; connections without it are rejected. No ports are open on non-loopback interfaces.
 2. **macOS Permissions:**
    * Provide a `tabwrangler setup` subcommand that installs Native Messaging host manifests for Chrome/Firefox and verifies/prompts for macOS Automation (`System Events` / `Safari`) permissions.
 3. **Windows Packaging:**

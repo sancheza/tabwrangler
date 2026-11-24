@@ -1,5 +1,5 @@
 // Package tui defines terminal styling, color palettes, and badges for TabWrangler
-// following ADR 0020 conventions.
+// following standard terminal status colors (green info, amber warning, red error).
 package tui
 
 import (
@@ -13,7 +13,7 @@ var (
 	ColorMuted     = lipgloss.Color("#666666")
 	ColorHighlight = lipgloss.Color("#2D1B69")
 
-	// ADR 0020 aligned terminal status colors
+	// Terminal status colors: green info, amber warning, red error
 	ColorInfo    = lipgloss.Color("#00AF00") // Green
 	ColorWarning = lipgloss.Color("#FFAF00") // 256-color amber (#FFAF00 / \033[38;5;214m)
 	ColorError   = lipgloss.Color("#E06C75") // Red

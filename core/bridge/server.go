@@ -40,6 +40,7 @@ type Server struct {
 	closed      bool
 	startErr    error
 	onRegister  func(types.BrowserType)
+	token       string
 }
 
 // NewServer initializes a new IPC bridge server.
@@ -76,7 +77,24 @@ func (s *Server) Start(ctx context.Context) error {
 		_ = os.Remove(sockPath)
 	}
 
+	token, err := newToken()
+	if err != nil {
+		return err
+	}
+	if err := writeToken(TokenPath(sockPath), token); err != nil {
+		return err
+	}
+	s.mu.Lock()
+	s.token = token
+	s.mu.Unlock()
+
+	// Create the socket with owner-only permissions from the start.
+	restore := func() {}
+	if network == "unix" {
+		restore = restrictUmask()
+	}
 	ln, err := net.Listen(network, sockPath)
+	restore()
 	if err != nil {
 		s.mu.Lock()
 		s.startErr = err
@@ -124,6 +142,7 @@ func (s *Server) Close() {
 	if runtime.GOOS != "windows" {
 		_ = os.Remove(s.sockPath)
 	}
+	_ = os.Remove(TokenPath(s.sockPath))
 }
 
 func (s *Server) acceptLoop() {
@@ -150,7 +169,15 @@ func (s *Server) handleConn(conn net.Conn) {
 
 	var regMsg Request
 	if err := json.Unmarshal(line, &regMsg); err != nil || regMsg.Action != ActionRegister {
-		Log("Server.handleConn invalid registration payload: %s, err: %v", string(line), err)
+		Log("Server.handleConn invalid registration payload (len=%d): %v", len(line), err)
+		_ = conn.Close()
+		return
+	}
+	s.mu.RLock()
+	expectedToken := s.token
+	s.mu.RUnlock()
+	if !tokenMatches(expectedToken, regMsg.Token) {
+		Log("Server.handleConn rejected registration: missing or invalid token")
 		_ = conn.Close()
 		return
 	}

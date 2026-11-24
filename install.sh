@@ -10,7 +10,7 @@ VERSION="1.0.12"
 
 set -euo pipefail
 
-# ANSI Color codes per ADR 0020
+# ANSI color codes: green info, amber warning, red error
 CLR_RESET="\033[0m"
 CLR_GREEN="\033[32m"
 CLR_AMBER="\033[38;5;214m"
@@ -130,7 +130,7 @@ main() {
 
   log_info "Downloading ${download_url}..."
   if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
-    # Authenticated GitHub CLI downloads from both public and private repos
+    # Authenticated GitHub CLI download
     gh release download -R sancheza/tabwrangler -p "${binary_name}" -D "${prefix}" --clobber
     mv "${prefix}/${binary_name}" "${target_path}"
   elif command -v curl >/dev/null 2>&1; then

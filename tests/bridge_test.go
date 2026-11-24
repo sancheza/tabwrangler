@@ -104,7 +104,11 @@ func TestBridgeServerRegistrationAndDispatch(t *testing.T) {
 	defer conn.Close()
 
 	// Send registration message
-	reg := `{"action":"register","browser":"firefox"}` + "\n"
+	token, err := bridge.ReadToken(testSock)
+	if err != nil {
+		t.Fatalf("Failed reading bridge token: %v", err)
+	}
+	reg := fmt.Sprintf(`{"action":"register","browser":"firefox","token":%q}`, token) + "\n"
 	if _, err := conn.Write([]byte(reg)); err != nil {
 		t.Fatalf("Failed sending registration: %v", err)
 	}
@@ -169,4 +173,92 @@ func TestUnmarshalFloatingLastAccessed(t *testing.T) {
 	if resp.Tabs[0].LastAccessed != 1793751482852.47 {
 		t.Errorf("expected lastAccessed 1793751482852.47, got %v", resp.Tabs[0].LastAccessed)
 	}
+}
+
+func TestBridgeServerRejectsMissingOrWrongToken(t *testing.T) {
+	testSock := filepath.Join(os.TempDir(), fmt.Sprintf("tabwrangler-test-%d.sock", time.Now().UnixNano()))
+	server := bridge.NewServerWithPath(testSock)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	if err := server.Start(ctx); err != nil {
+		t.Fatalf("Failed starting bridge server: %v", err)
+	}
+	defer server.Close()
+
+	info, err := os.Stat(bridge.TokenPath(testSock))
+	if err != nil {
+		t.Fatalf("Expected token file: %v", err)
+	}
+	if info.Mode().Perm() != 0600 {
+		t.Errorf("Expected token file mode 0600, got %v", info.Mode().Perm())
+	}
+	sockInfo, err := os.Stat(testSock)
+	if err != nil {
+		t.Fatalf("Expected socket file: %v", err)
+	}
+	if sockInfo.Mode().Perm() != 0600 {
+		t.Errorf("Expected socket mode 0600, got %v", sockInfo.Mode().Perm())
+	}
+
+	for _, reg := range []string{
+		`{"action":"register","browser":"firefox"}`,
+		`{"action":"register","browser":"firefox","token":"wrong"}`,
+	} {
+		conn, err := net.Dial("unix", testSock)
+		if err != nil {
+			t.Fatalf("Failed dialing bridge socket: %v", err)
+		}
+		_, _ = conn.Write([]byte(reg + "\n"))
+		time.Sleep(50 * time.Millisecond)
+		if server.IsBrowserConnected(types.BrowserFirefox) {
+			t.Errorf("Registration %q must be rejected", reg)
+		}
+		conn.Close()
+	}
+
+	server.Close()
+	if _, err := os.Stat(bridge.TokenPath(testSock)); !os.IsNotExist(err) {
+		t.Error("Expected token file to be removed on Close")
+	}
+}
+
+func TestBridgeRunnerInjectsTokenIntoRegistration(t *testing.T) {
+	sockPath := bridge.SocketPath()
+	if _, err := os.Stat(sockPath); err == nil {
+		t.Skip("default bridge socket in use by a running TabWrangler")
+	}
+	server := bridge.NewServer()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	if err := server.Start(ctx); err != nil {
+		t.Fatalf("Failed starting bridge server: %v", err)
+	}
+	defer server.Close()
+
+	stdinR, stdinW, _ := os.Pipe()
+	stdoutR, stdoutW, _ := os.Pipe()
+	origIn, origOut := os.Stdin, os.Stdout
+	os.Stdin, os.Stdout = stdinR, stdoutW
+	defer func() { os.Stdin, os.Stdout = origIn, origOut }()
+	defer stdoutR.Close()
+
+	done := make(chan struct{})
+	go func() {
+		_ = bridge.RunNativeMessagingBridge()
+		close(done)
+	}()
+
+	// The extension's registration message carries no token; the bridge adds it.
+	if err := bridge.WriteNativeMessage(stdinW, []byte(`{"action":"register","browser":"chrome"}`)); err != nil {
+		t.Fatalf("Failed writing native message: %v", err)
+	}
+	deadline := time.Now().Add(3 * time.Second)
+	for !server.IsBrowserConnected(types.BrowserChrome) && time.Now().Before(deadline) {
+		time.Sleep(20 * time.Millisecond)
+	}
+	if !server.IsBrowserConnected(types.BrowserChrome) {
+		t.Fatal("Expected Chrome to register through the bridge runner")
+	}
+	stdinW.Close()
+	<-done
 }

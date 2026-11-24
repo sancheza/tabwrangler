@@ -40,12 +40,13 @@ func Log(format string, args ...any) {
 	defer logMu.Unlock()
 
 	p := LogPath()
-	_ = os.MkdirAll(filepath.Dir(p), 0755)
-	f, err := os.OpenFile(p, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	_ = os.MkdirAll(filepath.Dir(p), 0700)
+	f, err := os.OpenFile(p, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
 	if err != nil {
 		return
 	}
 	defer f.Close()
+	_ = f.Chmod(0600)
 
 	msg := fmt.Sprintf(format, args...)
 	timestamp := time.Now().Format("2006-01-02 15:04:05.000")

@@ -14,7 +14,7 @@ Building a centralized cross-browser Terminal User Interface (TUI) requires:
 1. Low latency, non-blocking asynchronous state management.
 2. A unified data model representing tab metadata and honest metric attribution across heterogeneous browser architectures.
 3. Communication bridges accommodating both extension-capable browsers (Chrome, Firefox) and native platform scriptable browsers (Safari).
-4. Strict alignment with dev-level engineering standards: Dev ADR 0002 (repository layout), Dev ADR 0003 (code placement by scope), Dev ADR 0005 (command-line conventions), and Dev ADR 0020 (terminal colors).
+4. Alignment with common engineering standards: a standard repository layout (`cmd/`, `core/`, `tests/`, `docs/`), code placement by scope (shared code in `core/`, entry points in `cmd/`), standard command-line conventions (`-h/--help`, `-v/--version`), and standard terminal status colors (green info, amber warning, red error).
 
 ## 2. Decision
 
@@ -25,9 +25,9 @@ Building a centralized cross-browser Terminal User Interface (TUI) requires:
 - `charm.land/lipgloss/v2`: Declarative styling, adaptive terminal palettes, status badges, and table layout.
 - `charm.land/bubbles/v2`: Virtualized viewport and textinput components for live filtering (`/`).
 
-### 2.2 Repository Layout (Dev ADR 0002 & Dev ADR 0003)
+### 2.2 Repository Layout
 
-The repository layout follows Dev ADR 0002:
+The repository separates entry points (`cmd/`), shared code (`core/`), tests (`tests/`), and documentation (`docs/`):
 - `cmd/tabwrangler/`: Main entry point compiling to the binary executable.
 - `core/types`: Unified tab, metrics, and filter data models.
 - `core/collector`: Aggregator engine and browser adapter interfaces.
@@ -45,7 +45,7 @@ The repository layout follows Dev ADR 0002:
 TabWrangler uses a hybrid bridge architecture:
 1. **Chrome & Firefox**:
    - Manifest V3 companion WebExtension connects via standard Native Messaging (`stdin`/`stdout` 4-byte length-prefixed JSON frames) to `tabwrangler bridge`.
-   - The bridge host forwards requests to and from the TUI via a local user-scoped Unix domain socket (`/tmp/tabwrangler-$UID.sock`, mode `0600`) on macOS/Linux or a named pipe (`\\.\pipe\tabwrangler-<user>`) on Windows.
+   - The bridge host forwards requests to and from the TUI via a local user-scoped Unix domain socket (`/tmp/tabwrangler-$UID.sock`, mode `0600`) on macOS/Linux or a loopback TCP port (`127.0.0.1:42823`) on Windows. Each TUI run generates a random token, stored in an owner-only file, that the bridge host must present when it registers.
 2. **Safari (macOS)**:
    - Direct execution of AppleScript / JavaScript for Automation (`osascript`) querying Safari's scripting dictionary for windows, tabs, focus activation, and tab closure.
 

@@ -62,7 +62,7 @@ func RunNativeMessagingBridge() error {
 				Log("Browser stdin closed/error: %v", err)
 				return
 			}
-			Log("Received native message on stdin (len=%d): %s", len(payload), string(payload))
+			Log("Received native message on stdin (len=%d)", len(payload))
 			select {
 			case inMessages <- payload:
 			default:
@@ -74,8 +74,12 @@ func RunNativeMessagingBridge() error {
 	// Connect to local TabWrangler IPC server (wait patiently if TUI is launching)
 	var conn net.Conn
 	var err error
+	var token string
 	for {
-		conn, err = net.Dial(network, sockPath)
+		token, err = ReadToken(sockPath)
+		if err == nil {
+			conn, err = net.Dial(network, sockPath)
+		}
 		if err == nil {
 			Log("Bridge connected to local IPC server at %s", sockPath)
 			break
@@ -122,7 +126,8 @@ func RunNativeMessagingBridge() error {
 				// Ensure newline delimited for the IPC socket
 				var js json.RawMessage
 				if err := json.Unmarshal(payload, &js); err == nil {
-					Log("Forwarding stdin payload to TUI IPC socket: %s", string(payload))
+					payload = withToken(payload, token)
+					Log("Forwarding stdin payload to TUI IPC socket (len=%d)", len(payload))
 					if _, err := conn.Write(append(payload, '\n')); err != nil {
 						Log("Error writing payload to IPC socket: %v", err)
 						return
@@ -131,7 +136,7 @@ func RunNativeMessagingBridge() error {
 			case <-stdinClosed:
 				// Drain any remaining inMessages
 				for len(inMessages) > 0 {
-					payload := <-inMessages
+					payload := withToken(<-inMessages, token)
 					_, _ = conn.Write(append(payload, '\n'))
 				}
 				_ = conn.Close()
@@ -142,4 +147,18 @@ func RunNativeMessagingBridge() error {
 
 	<-done
 	return nil
+}
+
+// withToken adds the per-run token to a registration message. Other messages pass through unchanged.
+func withToken(payload []byte, token string) []byte {
+	var msg map[string]any
+	if err := json.Unmarshal(payload, &msg); err != nil || msg["action"] != ActionRegister {
+		return payload
+	}
+	msg["token"] = token
+	out, err := json.Marshal(msg)
+	if err != nil {
+		return payload
+	}
+	return out
 }

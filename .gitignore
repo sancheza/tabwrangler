@@ -11,7 +11,7 @@ dist/
 .DS_Store
 Thumbs.db
 
-# Runtime directories per Dev ADR 0002
+# Runtime directories (cache, logs, reports, outputs)
 cache/
 logs/
 reports/

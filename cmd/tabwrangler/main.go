@@ -1,5 +1,5 @@
 // Package main provides the entry point for TabWrangler, a cross-browser tab inspector
-// and control TUI conforming to Dev ADR 0005 command-line conventions.
+// and control TUI with standard command-line conventions (-h/--help, -v/--version).
 package main
 
 import (
@@ -36,7 +36,7 @@ func printUsage() {
 		cReset = "\033[0m"
 		cDim = "\033[2m"
 		cGreen = "\033[32m"
-		cAmber = "\033[38;5;214m" // True 256-color amber per Dev ADR 0020
+		cAmber = "\033[38;5;214m" // 256-color amber for warnings
 		cCyan = "\033[36m"
 		cBoldCyan = "\033[1;36m"
 		cBoldWhite = "\033[1;37m"
@@ -128,7 +128,7 @@ func printUsage() {
 // and starts the interactive Bubble Tea terminal user interface.
 func main() {
 	bridge.Log("TabWrangler process started: args=%v", os.Args)
-	// Custom flag set to strictly support -v/--version and -h/--help per Dev ADR 0005
+	// Custom flag set to strictly support -v/--version and -h/--help per standard command-line conventions (-h/--help, -v/--version)
 	var (
 		versionFlagShort bool
 		versionFlagLong  bool

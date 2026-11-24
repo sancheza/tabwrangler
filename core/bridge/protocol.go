@@ -31,6 +31,7 @@ type Request struct {
 	URLs      []string          `json:"urls,omitempty"`
 	URL       string            `json:"url,omitempty"`
 	Params    map[string]any    `json:"params,omitempty"`
+	Token     string            `json:"token,omitempty"`
 }
 
 // Response encapsulates the result from a bridge RPC command.
