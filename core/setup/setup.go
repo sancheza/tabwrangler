@@ -137,12 +137,33 @@ func Run(binaryPath string, openBrowser bool, customChromeID string) error {
 
 		// Copy binary into permanent AppData location so that moved/temp downloads don't break Chrome's path
 		installedBinaryPath := filepath.Join(tabWranglerDir, "tabwrangler.exe")
-		if absBin, err := filepath.Abs(binaryPath); err == nil && absBin != installedBinaryPath {
+		absBin, _ := filepath.Abs(binaryPath)
+		if absBin != "" && absBin != installedBinaryPath {
 			if inData, err := os.ReadFile(absBin); err == nil {
 				if err := os.WriteFile(installedBinaryPath, inData, 0755); err == nil {
 					binaryPath = installedBinaryPath
 					fmt.Printf("\033[32m[OK]\033[0m Installed persistent binary: %s\n", installedBinaryPath)
 				}
+			}
+		}
+
+		// Locate and copy extension directory to persistent AppData location
+		destExtensionDir := filepath.Join(tabWranglerDir, "extension")
+		extCandidates := []string{
+			filepath.Join(filepath.Dir(absBin), "extension"),
+			"extension",
+		}
+		var srcExtensionDir string
+		for _, cand := range extCandidates {
+			candAbs, _ := filepath.Abs(cand)
+			if fi, err := os.Stat(candAbs); err == nil && fi.IsDir() {
+				srcExtensionDir = candAbs
+				break
+			}
+		}
+		if srcExtensionDir != "" && srcExtensionDir != destExtensionDir {
+			if err := copyDir(srcExtensionDir, destExtensionDir); err == nil {
+				fmt.Printf("\033[32m[OK]\033[0m Installed persistent extension directory: %s\n", destExtensionDir)
 			}
 		}
 
@@ -188,19 +209,17 @@ func Run(binaryPath string, openBrowser bool, customChromeID string) error {
 		registerWindowsRegistry(`Mozilla`, firefoxPath)
 
 		// Copy extension directory to Windows clipboard if clip is available
-		candidatePaths := []string{
-			filepath.Join(filepath.Dir(binaryPath), "extension"),
-			"extension",
+		var clipPath string
+		if fi, err := os.Stat(destExtensionDir); err == nil && fi.IsDir() {
+			clipPath = destExtensionDir
+		} else if srcExtensionDir != "" {
+			clipPath = srcExtensionDir
 		}
-		for _, cand := range candidatePaths {
-			abs, _ := filepath.Abs(cand)
-			if fi, err := os.Stat(abs); err == nil && fi.IsDir() {
-				clip := exec.Command("clip")
-				clip.Stdin = strings.NewReader(abs)
-				if clip.Run() == nil {
-					fmt.Printf("\033[32m[OK]\033[0m Copied extension directory to Windows clipboard: %s\n", abs)
-				}
-				break
+		if clipPath != "" {
+			clip := exec.Command("clip")
+			clip.Stdin = strings.NewReader(clipPath)
+			if clip.Run() == nil {
+				fmt.Printf("\033[32m[OK]\033[0m Copied extension directory to Windows clipboard: %s\n", clipPath)
 			}
 		}
 	} else {
@@ -299,7 +318,27 @@ func registerWindowsRegistry(browserKey, manifestPath string) {
 	}
 }
 
-// discoverInstalledExtensionIDs scans Chromium user profile directories (Chrome, Edge, Brave)
+// copyDir recursively copies a directory tree from src to dst.
+func copyDir(src, dst string) error {
+	return filepath.Walk(src, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		rel, err := filepath.Rel(src, path)
+		if err != nil {
+			return err
+		}
+		targetPath := filepath.Join(dst, rel)
+		if info.IsDir() {
+			return os.MkdirAll(targetPath, 0755)
+		}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		return os.WriteFile(targetPath, data, info.Mode())
+	})
+}
 // to automatically discover unpacked extension IDs matching TabWrangler.
 func discoverInstalledExtensionIDs(localAppData string) []string {
 	var ids []string

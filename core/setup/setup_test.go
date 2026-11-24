@@ -82,3 +82,32 @@ func TestWriteManifestsWithCustomID(t *testing.T) {
 		t.Errorf("expected second origin %s, got %s", customID, cMF.AllowedOrigins[1])
 	}
 }
+
+func TestCopyDir(t *testing.T) {
+	src := t.TempDir()
+	dst := filepath.Join(t.TempDir(), "target")
+
+	subDir := filepath.Join(src, "sub")
+	if err := os.MkdirAll(subDir, 0755); err != nil {
+		t.Fatalf("failed creating subdir: %v", err)
+	}
+
+	testFile := filepath.Join(subDir, "test.txt")
+	expectedContent := "tabwrangler copy test"
+	if err := os.WriteFile(testFile, []byte(expectedContent), 0644); err != nil {
+		t.Fatalf("failed writing test file: %v", err)
+	}
+
+	if err := copyDir(src, dst); err != nil {
+		t.Fatalf("copyDir failed: %v", err)
+	}
+
+	dstFile := filepath.Join(dst, "sub", "test.txt")
+	gotContent, err := os.ReadFile(dstFile)
+	if err != nil {
+		t.Fatalf("failed reading copied file: %v", err)
+	}
+	if string(gotContent) != expectedContent {
+		t.Fatalf("expected content %q, got %q", expectedContent, string(gotContent))
+	}
+}
