@@ -29,9 +29,15 @@ function connectNative() {
     });
 
     nativePort.onDisconnect.addListener(() => {
+      // Access lastError to clear error state and prevent Chrome "Unchecked runtime.lastError" errors
+      const lastErr = (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.lastError) ||
+                      (typeof browser !== "undefined" && browser.runtime && browser.runtime.lastError);
+      if (lastErr) {
+        console.warn("[TabWrangler] Native bridge disconnected:", lastErr.message);
+      }
       nativePort = null;
       clearTimeout(reconnectTimer);
-      reconnectTimer = setTimeout(connectNative, 2000);
+      reconnectTimer = setTimeout(connectNative, 3000);
     });
 
     // Send initial registration handshake

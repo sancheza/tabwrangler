@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"path/filepath"
 	"runtime"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -17,14 +17,12 @@ import (
 	"github.com/sancheza/tabwrangler/core/types"
 )
 
-// SocketPath returns the OS-specific local IPC socket path.
+const WindowsTCPAddr = "127.0.0.1:42823"
+
+// SocketPath returns the OS-specific local IPC socket or loopback address.
 func SocketPath() string {
 	if runtime.GOOS == "windows" {
-		user := os.Getenv("USERNAME")
-		if user == "" {
-			user = "default"
-		}
-		return filepath.Join(os.TempDir(), fmt.Sprintf("tabwrangler-%s.sock", user))
+		return WindowsTCPAddr
 	}
 	uid := os.Getuid()
 	return fmt.Sprintf("/tmp/tabwrangler-%d.sock", uid)
@@ -56,7 +54,7 @@ func NewServerWithPath(sockPath string) *Server {
 	}
 }
 
-// Start begins listening on the local IPC socket.
+// Start begins listening on the local IPC socket or TCP port.
 func (s *Server) Start(ctx context.Context) error {
 	sockPath := s.sockPath
 	if sockPath == "" {
@@ -64,17 +62,19 @@ func (s *Server) Start(ctx context.Context) error {
 		s.sockPath = sockPath
 	}
 
-	if runtime.GOOS != "windows" {
-		// Clean up existing socket file if present
+	network := "unix"
+	if strings.Contains(sockPath, ":") {
+		network = "tcp"
+	} else {
 		_ = os.Remove(sockPath)
 	}
 
-	ln, err := net.Listen("unix", sockPath)
+	ln, err := net.Listen(network, sockPath)
 	if err != nil {
-		return fmt.Errorf("failed to listen on socket %s: %w", sockPath, err)
+		return fmt.Errorf("failed to listen on %s (%s): %w", network, sockPath, err)
 	}
 
-	if runtime.GOOS != "windows" {
+	if network == "unix" && runtime.GOOS != "windows" {
 		// Enforce strict 0600 permissions
 		if err := os.Chmod(sockPath, 0600); err != nil {
 			_ = ln.Close()

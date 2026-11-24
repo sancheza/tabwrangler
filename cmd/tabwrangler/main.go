@@ -207,6 +207,11 @@ func main() {
 		initialBrowser = types.BrowserAll
 	}
 
+	// Ensure native messaging host manifests are registered on local system
+	if !mockFlag {
+		setup.EnsureRegistered()
+	}
+
 	// Initialize collector
 	coll := collector.NewCollector()
 	ctx, cancel := context.WithCancel(context.Background())

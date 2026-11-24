@@ -67,6 +67,8 @@ func TestIsNativeMessagingInvocation(t *testing.T) {
 		{[]string{"tabwrangler", "setup"}, false},
 		{[]string{"tabwrangler", "bridge"}, true},
 		{[]string{"tabwrangler", "chrome-extension://abcdefghijklmnop/"}, true},
+		{[]string{"tabwrangler", "--parent-window=12345", "chrome-extension://ambpjofjffekeccmjjeaadoeieemmlhc/"}, true},
+		{[]string{"tabwrangler", "chrome-extension://ambpjofjffekeccmjjeaadoeieemmlhc/", "--parent-window=0"}, true},
 		{[]string{"tabwrangler", "/path/to/com.tabwrangler.bridge.json", "companion@tabwrangler.local"}, true},
 		{[]string{"tabwrangler", "/Users/foo/Library/Application Support/Mozilla/NativeMessagingHosts/com.tabwrangler.bridge.json"}, true},
 	}

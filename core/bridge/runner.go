@@ -4,7 +4,6 @@ package bridge
 import (
 	"bufio"
 	"encoding/json"
-	"fmt"
 	"net"
 	"os"
 	"strings"
@@ -15,24 +14,28 @@ import (
 // was spawned by a browser as a native messaging host.
 //
 // Firefox spawns: <binary> <path-to-native-manifest.json> <extension-id>
-// Chrome spawns:  <binary> chrome-extension://<extension-id>/
+// Chrome spawns:  <binary> chrome-extension://<extension-id>/ [--parent-window=<hwnd>]
 // Manual test:    <binary> bridge
 func IsNativeMessagingInvocation(args []string) bool {
 	if len(args) < 2 {
 		return false
 	}
-	arg1 := args[1]
-	if arg1 == "bridge" {
-		return true
-	}
-	if strings.HasPrefix(arg1, "chrome-extension://") {
-		return true
-	}
-	if strings.HasSuffix(arg1, ".json") && (strings.Contains(arg1, "tabwrangler") || strings.Contains(arg1, "NativeMessagingHosts")) {
-		return true
-	}
-	if strings.Contains(arg1, "com.tabwrangler.bridge") {
-		return true
+	for _, arg := range args[1:] {
+		if arg == "bridge" {
+			return true
+		}
+		if strings.HasPrefix(arg, "chrome-extension://") {
+			return true
+		}
+		if strings.HasPrefix(arg, "--parent-window") {
+			return true
+		}
+		if strings.HasSuffix(arg, ".json") && (strings.Contains(arg, "tabwrangler") || strings.Contains(arg, "NativeMessagingHosts")) {
+			return true
+		}
+		if strings.Contains(arg, "com.tabwrangler.bridge") {
+			return true
+		}
 	}
 	return false
 }
@@ -40,19 +43,44 @@ func IsNativeMessagingInvocation(args []string) bool {
 // RunNativeMessagingBridge connects stdin/stdout Native Messaging to the local IPC socket.
 func RunNativeMessagingBridge() error {
 	sockPath := SocketPath()
+	network := "unix"
+	if strings.Contains(sockPath, ":") {
+		network = "tcp"
+	}
 
-	// Retry connecting briefly in case the TUI process is in the middle of socket setup
+	// Buffer messages from browser stdin while waiting for TUI IPC connection
+	inMessages := make(chan []byte, 100)
+	stdinClosed := make(chan struct{})
+
+	// Goroutine: Read from browser extension stdin immediately
+	go func() {
+		defer close(stdinClosed)
+		for {
+			payload, err := ReadNativeMessage(os.Stdin)
+			if err != nil {
+				return
+			}
+			select {
+			case inMessages <- payload:
+			default:
+			}
+		}
+	}()
+
+	// Connect to local TabWrangler IPC server (wait patiently if TUI is launching)
 	var conn net.Conn
 	var err error
-	for i := 0; i < 5; i++ {
-		conn, err = net.Dial("unix", sockPath)
+	for {
+		conn, err = net.Dial(network, sockPath)
 		if err == nil {
 			break
 		}
-		time.Sleep(300 * time.Millisecond)
-	}
-	if err != nil {
-		return fmt.Errorf("failed connecting to TabWrangler IPC socket at %s: %w", sockPath, err)
+		select {
+		case <-stdinClosed:
+			// Browser closed pipe (e.g. extension unloaded or browser exited)
+			return nil
+		case <-time.After(500 * time.Millisecond):
+		}
 	}
 	defer conn.Close()
 
@@ -75,21 +103,30 @@ func RunNativeMessagingBridge() error {
 		}
 	}()
 
-	// Goroutine 2: Read from browser extension stdin and write to local IPC socket
+	// Goroutine 2: Flush buffered messages, then forward incoming stdin messages to local IPC socket
 	go func() {
 		for {
-			payload, err := ReadNativeMessage(os.Stdin)
-			if err != nil {
-				_ = conn.Close()
-				return
-			}
-
-			// Ensure newline delimited for the IPC socket
-			var js json.RawMessage
-			if err := json.Unmarshal(payload, &js); err == nil {
-				if _, err := conn.Write(append(payload, '\n')); err != nil {
+			select {
+			case payload, ok := <-inMessages:
+				if !ok {
+					_ = conn.Close()
 					return
 				}
+				// Ensure newline delimited for the IPC socket
+				var js json.RawMessage
+				if err := json.Unmarshal(payload, &js); err == nil {
+					if _, err := conn.Write(append(payload, '\n')); err != nil {
+						return
+					}
+				}
+			case <-stdinClosed:
+				// Drain any remaining inMessages
+				for len(inMessages) > 0 {
+					payload := <-inMessages
+					_, _ = conn.Write(append(payload, '\n'))
+				}
+				_ = conn.Close()
+				return
 			}
 		}
 	}()

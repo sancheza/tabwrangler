@@ -33,6 +33,21 @@ type firefoxManifest struct {
 	AllowedExtensions []string `json:"allowed_extensions"`
 }
 
+// EnsureRegistered checks if Native Messaging manifests are configured; if not, runs silent setup.
+func EnsureRegistered() {
+	if runtime.GOOS == "windows" {
+		localAppData := os.Getenv("LOCALAPPDATA")
+		if localAppData == "" {
+			homeDir, _ := os.UserHomeDir()
+			localAppData = filepath.Join(homeDir, "AppData", "Local")
+		}
+		manifestPath := filepath.Join(localAppData, "TabWrangler", "NativeMessagingHosts", HostName+".json")
+		if _, err := os.Stat(manifestPath); os.IsNotExist(err) {
+			_ = Run("", false, "")
+		}
+	}
+}
+
 // Run executes the setup process, creating manifest files and verifying permissions.
 func Run(binaryPath string, openBrowser bool, customChromeID string) error {
 	if binaryPath == "" {
@@ -55,11 +70,16 @@ func Run(binaryPath string, openBrowser bool, customChromeID string) error {
 	fmt.Printf("[INFO] Configuring Native Messaging host for TabWrangler...\n")
 	fmt.Printf("[INFO] Binary location: %s\n", binaryPath)
 
+	allIDs := []string{DefaultChromeExtensionID}
+	if customChromeID != "" && customChromeID != DefaultChromeExtensionID {
+		allIDs = append(allIDs, customChromeID)
+	}
+
 	if runtime.GOOS == "darwin" {
 		chromeDir := filepath.Join(homeDir, "Library", "Application Support", "Google", "Chrome", "NativeMessagingHosts")
 		firefoxDir := filepath.Join(homeDir, "Library", "Application Support", "Mozilla", "NativeMessagingHosts")
 
-		if _, _, err := writeManifests(chromeDir, firefoxDir, binaryPath, customChromeID); err != nil {
+		if _, _, err := writeManifestsWithOrigins(chromeDir, firefoxDir, binaryPath, allIDs); err != nil {
 			return err
 		}
 
@@ -109,18 +129,60 @@ func Run(binaryPath string, openBrowser bool, customChromeID string) error {
 			appData = filepath.Join(homeDir, "AppData", "Roaming")
 		}
 
-		chromeDir := filepath.Join(localAppData, "TabWrangler", "NativeMessagingHosts")
+		// Establish permanent directory for TabWrangler
+		tabWranglerDir := filepath.Join(localAppData, "TabWrangler")
+		_ = os.MkdirAll(tabWranglerDir, 0755)
+
+		// Copy binary into permanent AppData location so that moved/temp downloads don't break Chrome's path
+		installedBinaryPath := filepath.Join(tabWranglerDir, "tabwrangler.exe")
+		if absBin, err := filepath.Abs(binaryPath); err == nil && absBin != installedBinaryPath {
+			if inData, err := os.ReadFile(absBin); err == nil {
+				if err := os.WriteFile(installedBinaryPath, inData, 0755); err == nil {
+					binaryPath = installedBinaryPath
+					fmt.Printf("\033[32m[OK]\033[0m Installed persistent binary: %s\n", installedBinaryPath)
+				}
+			}
+		}
+
+		chromeDir := filepath.Join(tabWranglerDir, "NativeMessagingHosts")
 		firefoxDir := filepath.Join(appData, "Mozilla", "NativeMessagingHosts")
 
-		chromePath, firefoxPath, err := writeManifests(chromeDir, firefoxDir, binaryPath, customChromeID)
+		// Scan for existing extension IDs in browser user profiles
+		discovered := discoverInstalledExtensionIDs(localAppData)
+		for _, dID := range discovered {
+			found := false
+			for _, existing := range allIDs {
+				if existing == dID {
+					found = true
+					break
+				}
+			}
+			if !found {
+				allIDs = append(allIDs, dID)
+				fmt.Printf("[INFO] Discovered existing installed TabWrangler extension ID: %s\n", dID)
+			}
+		}
+
+		chromePath, firefoxPath, err := writeManifestsWithOrigins(chromeDir, firefoxDir, binaryPath, allIDs)
 		if err != nil {
 			return err
 		}
 
-		// Register in Windows Registry under HKCU
+		// Also place manifest directly into Chrome User Data NativeMessagingHosts if folder exists
+		chromeUserDir := filepath.Join(localAppData, "Google", "Chrome", "User Data", "NativeMessagingHosts")
+		_, _, _ = writeManifestsWithOrigins(chromeUserDir, firefoxDir, binaryPath, allIDs)
+
+		// Register in Windows Registry under HKCU across both 32-bit and 64-bit views
 		fmt.Printf("[INFO] Registering Native Messaging hosts in Windows Registry...\n")
-		registerWindowsRegistry(`Google\Chrome`, chromePath)
-		registerWindowsRegistry(`Microsoft\Edge`, chromePath)
+		browserKeys := []string{
+			`Google\Chrome`,
+			`Microsoft\Edge`,
+			`Chromium`,
+			`BraveSoftware\Brave-Browser`,
+		}
+		for _, bk := range browserKeys {
+			registerWindowsRegistry(bk, chromePath)
+		}
 		registerWindowsRegistry(`Mozilla`, firefoxPath)
 
 		// Copy extension directory to Windows clipboard if clip is available
@@ -144,7 +206,7 @@ func Run(binaryPath string, openBrowser bool, customChromeID string) error {
 		chromeDir := filepath.Join(homeDir, ".config", "google-chrome", "NativeMessagingHosts")
 		firefoxDir := filepath.Join(homeDir, ".mozilla", "native-messaging-hosts")
 
-		if _, _, err := writeManifests(chromeDir, firefoxDir, binaryPath, customChromeID); err != nil {
+		if _, _, err := writeManifestsWithOrigins(chromeDir, firefoxDir, binaryPath, allIDs); err != nil {
 			return err
 		}
 	}
@@ -154,6 +216,14 @@ func Run(binaryPath string, openBrowser bool, customChromeID string) error {
 }
 
 func writeManifests(chromeDir, firefoxDir, binaryPath, customChromeID string) (string, string, error) {
+	allIDs := []string{DefaultChromeExtensionID}
+	if customChromeID != "" && customChromeID != DefaultChromeExtensionID {
+		allIDs = append(allIDs, customChromeID)
+	}
+	return writeManifestsWithOrigins(chromeDir, firefoxDir, binaryPath, allIDs)
+}
+
+func writeManifestsWithOrigins(chromeDir, firefoxDir, binaryPath string, extensionIDs []string) (string, string, error) {
 	if err := os.MkdirAll(chromeDir, 0755); err != nil {
 		return "", "", fmt.Errorf("failed creating Chrome NativeMessagingHosts dir: %w", err)
 	}
@@ -161,11 +231,9 @@ func writeManifests(chromeDir, firefoxDir, binaryPath, customChromeID string) (s
 		return "", "", fmt.Errorf("failed creating Firefox NativeMessagingHosts dir: %w", err)
 	}
 
-	allowedOrigins := []string{
-		"chrome-extension://" + DefaultChromeExtensionID + "/",
-	}
-	if customChromeID != "" && customChromeID != DefaultChromeExtensionID {
-		allowedOrigins = append(allowedOrigins, "chrome-extension://"+customChromeID+"/")
+	var allowedOrigins []string
+	for _, id := range extensionIDs {
+		allowedOrigins = append(allowedOrigins, "chrome-extension://"+id+"/")
 	}
 
 	chromeMF := chromeManifest{
@@ -204,11 +272,62 @@ func writeManifests(chromeDir, firefoxDir, binaryPath, customChromeID string) (s
 }
 
 func registerWindowsRegistry(browserKey, manifestPath string) {
-	cmd := exec.Command("reg", "add", `HKCU\Software\`+browserKey+`\NativeMessagingHosts\`+HostName, "/ve", "/t", "REG_SZ", "/d", manifestPath, "/f")
-	out, err := cmd.CombinedOutput()
+	// Register across standard, 32-bit (/reg:32), 64-bit (/reg:64), and Wow6432Node paths
+	cmd1 := exec.Command("reg", "add", `HKCU\Software\`+browserKey+`\NativeMessagingHosts\`+HostName, "/ve", "/t", "REG_SZ", "/d", manifestPath, "/f")
+	out, err := cmd1.CombinedOutput()
+
+	cmd2 := exec.Command("reg", "add", `HKCU\Software\`+browserKey+`\NativeMessagingHosts\`+HostName, "/ve", "/t", "REG_SZ", "/d", manifestPath, "/f", "/reg:32")
+	_ = cmd2.Run()
+
+	cmd3 := exec.Command("reg", "add", `HKCU\Software\`+browserKey+`\NativeMessagingHosts\`+HostName, "/ve", "/t", "REG_SZ", "/d", manifestPath, "/f", "/reg:64")
+	_ = cmd3.Run()
+
+	cmd4 := exec.Command("reg", "add", `HKCU\Software\Wow6432Node\`+browserKey+`\NativeMessagingHosts\`+HostName, "/ve", "/t", "REG_SZ", "/d", manifestPath, "/f")
+	_ = cmd4.Run()
+
 	if err != nil {
 		fmt.Printf("\033[38;5;214m[WARNING]\033[0m Failed adding %s registry key: %v (%s)\n", browserKey, err, strings.TrimSpace(string(out)))
 	} else {
-		fmt.Printf("\033[32m[OK]\033[0m Registered %s in Windows Registry: HKCU\\Software\\%s\\NativeMessagingHosts\\%s\n", browserKey, browserKey, HostName)
+		fmt.Printf("\033[32m[OK]\033[0m Registered %s across 32-bit & 64-bit Windows Registry views\n", browserKey)
 	}
+}
+
+func discoverInstalledExtensionIDs(localAppData string) []string {
+	var ids []string
+	searchRoots := []string{
+		filepath.Join(localAppData, "Google", "Chrome", "User Data"),
+		filepath.Join(localAppData, "Microsoft", "Edge", "User Data"),
+		filepath.Join(localAppData, "BraveSoftware", "Brave-Browser", "User Data"),
+	}
+	for _, root := range searchRoots {
+		prefFiles, _ := filepath.Glob(filepath.Join(root, "Default", "Preferences"))
+		profilePrefs, _ := filepath.Glob(filepath.Join(root, "Profile *", "Preferences"))
+		prefFiles = append(prefFiles, profilePrefs...)
+
+		for _, pf := range prefFiles {
+			data, err := os.ReadFile(pf)
+			if err != nil {
+				continue
+			}
+			var rootJSON struct {
+				Extensions struct {
+					Settings map[string]struct {
+						Manifest struct {
+							Name string `json:"name"`
+						} `json:"manifest"`
+						Path string `json:"path"`
+					} `json:"settings"`
+				} `json:"extensions"`
+			}
+			if err := json.Unmarshal(data, &rootJSON); err == nil {
+				for extID, setting := range rootJSON.Extensions.Settings {
+					if strings.Contains(strings.ToLower(setting.Manifest.Name), "tabwrangler") ||
+						strings.Contains(strings.ToLower(setting.Path), "tabwrangler") {
+						ids = append(ids, extID)
+					}
+				}
+			}
+		}
+	}
+	return ids
 }
