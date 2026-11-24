@@ -4,10 +4,11 @@ package tui
 import (
 	"context"
 	"fmt"
-	"github.com/sancheza/tabwrangler/core/bridge"
+	"strings"
 	"time"
 
 	tea "charm.land/bubbletea/v2"
+	"github.com/sancheza/tabwrangler/core/bridge"
 	"github.com/sancheza/tabwrangler/core/types"
 )
 
@@ -131,6 +132,16 @@ func (m Model) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	}
 
 	// 4. Standard Navigation and Shortcuts
+	// A retired key shows a hint and does nothing else.
+	if hint, retired := retiredKeys[keyStr]; retired {
+		m.toast = hint
+		m.toastIsWarning = true
+		return m, tea.Tick(4*time.Second, func(time.Time) tea.Msg { return ClearToastMsg{} })
+	}
+	// Every other capital letter does what its lowercase key does, so Caps Lock is harmless.
+	if len(keyStr) == 1 && keyStr[0] >= 'A' && keyStr[0] <= 'Z' {
+		keyStr = strings.ToLower(keyStr)
+	}
 	switch keyStr {
 	case "q", "ctrl+c":
 		return m, tea.Quit
@@ -153,11 +164,11 @@ func (m Model) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 			m.adjustViewport()
 		}
 
-	case "g":
+	case "g", "home":
 		m.cursor = 0
 		m.adjustViewport()
 
-	case "G":
+	case "end":
 		if len(m.visibleTabs) > 0 {
 			m.cursor = len(m.visibleTabs) - 1
 			m.adjustViewport()
@@ -174,12 +185,21 @@ func (m Model) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		}
 
 	case "a":
+		// Select every visible tab; when all are already selected, clear the selection.
+		allSelected := len(m.visibleTabs) > 0
 		for _, t := range m.visibleTabs {
-			m.selectedIDs[t.ID] = true
+			if !m.selectedIDs[t.ID] {
+				allSelected = false
+				break
+			}
 		}
-
-	case "A":
-		m.selectedIDs = make(map[string]bool)
+		if allSelected {
+			m.selectedIDs = make(map[string]bool)
+		} else {
+			for _, t := range m.visibleTabs {
+				m.selectedIDs[t.ID] = true
+			}
+		}
 
 	case "0":
 		m.activeBrowser = types.BrowserAll
@@ -221,7 +241,7 @@ func (m Model) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		m.StepSort()
 		m.FilterAndSortTabs()
 
-	case "S":
+	case "o":
 		m.sortDesc = !m.sortDesc
 		m.FilterAndSortTabs()
 
@@ -245,7 +265,7 @@ func (m Model) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 			return m, m.executeUndoDiscard(action.Tabs)
 		}
 
-	case "U":
+	case "v":
 		m.showFullURL = !m.showFullURL
 
 	case "enter", "f":
@@ -260,12 +280,6 @@ func (m Model) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 			m.undoStack = append(m.undoStack, UndoAction{Type: UndoDiscard, Tabs: targets})
 			return m, m.executeDiscardTabs(targets)
 		}
-
-	case "d":
-		// Retired alias for h. It only points to h, so a stray press never acts on tabs.
-		m.toast = "'d' was retired; press 'h' to hibernate"
-		m.toastIsWarning = true
-		return m, tea.Tick(4*time.Second, func(time.Time) tea.Msg { return ClearToastMsg{} })
 
 	case "c":
 		targets := m.SelectedOrHighlightedTabs()
@@ -528,4 +542,15 @@ func (m *Model) executeUndoDiscard(tabs []types.Tab) tea.Cmd {
 			IsWarning: isWarn,
 		}
 	}
+}
+
+// retiredKeys maps keys that used to run a command to a hint that names the key to use now.
+// Pressing one shows the hint and does nothing else.
+var retiredKeys = map[string]string{
+	"d": "'d' was retired; press 'h' to hibernate",
+	"D": "'D' was retired; press 'h' to hibernate",
+	"A": "'A' was retired; press 'a' to select all, and again to clear the selection",
+	"G": "'G' was retired; press End to jump to the bottom",
+	"S": "'S' was retired; press 'o' to flip the sort direction",
+	"U": "'U' was retired; press 'v' to show or hide the full URL column",
 }

@@ -82,13 +82,15 @@ Users can inspect every open tab's metadata and resource footprint on demand, fi
 | Key | Action |
 | :--- | :--- |
 | `j` / `k` or `↑` / `↓` | Move cursor down / up |
-| `g` / `G` | Jump to top / bottom of list |
+| `g` or `Home` | Jump to top of list |
+| `End` | Jump to bottom of list |
 | `Space` | Toggle selection on highlighted tab |
-| `a` / `A` | Select all visible tabs / Clear all selections |
+| `a` | Select all visible tabs; press again to clear the selection |
 | `0`–`3` or `[` / `]` | Switch browser filter (`All`, `Chrome`, `Firefox`, `Safari`) |
 | `/` | Enter live fuzzy/substring filter (matches `Title`, `URL`, `Domain`) |
 | `Esc` | Clear active search filter or cancel modal/confirmation |
-| `s` / `S` | Cycle sort column (`RAM`, `CPU`, `Last Used`, `Browser`, `Title`) / Reverse sort order |
+| `s` | Cycle sort column (`RAM`, `CPU`, `Last Used`, `Browser`, `Title`) |
+| `o` | Reverse sort order |
 | `t` | Toggle special/internal tabs (`about:*`, `chrome://*`, `file://*`, blank tabs) |
 | `u` | Toggle full URL column visibility |
 | `Enter` or `f` | **Focus / Foreground:** Bring browser application, window, and specific tab to the foreground |

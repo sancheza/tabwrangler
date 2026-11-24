@@ -163,15 +163,15 @@ func TestUndoStackOperations(t *testing.T) {
 	updated, _ = m.Update(uKey)
 	m = updated.(Model)
 
-	// Test 7: Press 'U' to toggle full URL
-	bigUKey := tea.KeyPressMsg(tea.Key{Text: "U", Code: 'U'})
+	// Test 7: Press 'v' to toggle full URL
+	vKey := tea.KeyPressMsg(tea.Key{Text: "v", Code: 'v'})
 	if m.showFullURL {
 		t.Fatal("expected showFullURL initial false")
 	}
-	updated, _ = m.Update(bigUKey)
+	updated, _ = m.Update(vKey)
 	m = updated.(Model)
 	if !m.showFullURL {
-		t.Fatal("expected showFullURL true after pressing U")
+		t.Fatal("expected showFullURL true after pressing v")
 	}
 }
 
@@ -216,6 +216,111 @@ func TestExtensionStatusText(t *testing.T) {
 		}
 		if c.absent != "" && strings.Contains(got, c.absent) {
 			t.Errorf("%s: %q should not contain %q", c.name, got, c.absent)
+		}
+	}
+}
+
+func keyMsg(text string) tea.KeyPressMsg {
+	return tea.KeyPressMsg(tea.Key{Text: text, Code: []rune(text)[0]})
+}
+
+func modelWithTabs(t *testing.T, n int) Model {
+	t.Helper()
+	m := NewModel(collector.NewCollector(), types.BrowserAll, false)
+	var tabs []types.Tab
+	for i := 0; i < n; i++ {
+		id := string(rune('1' + i))
+		tabs = append(tabs, types.Tab{ID: "chrome-" + id, TabID: id, WindowID: "1", Browser: types.BrowserChrome,
+			Title: "Tab " + id, URL: "https://example.org/" + id, Domain: "example.org",
+			Capabilities: types.Capabilities{CanClose: true, CanDiscard: true}})
+	}
+	updated, _ := m.Update(RefreshDoneMsg{Tabs: tabs, Errors: make(map[types.BrowserType]error)})
+	return updated.(Model)
+}
+
+func TestSelectAllToggles(t *testing.T) {
+	m := modelWithTabs(t, 3)
+	updated, _ := m.Update(keyMsg("a"))
+	m = updated.(Model)
+	if len(m.selectedIDs) != 3 {
+		t.Fatalf("a should select all 3 tabs, selected %d", len(m.selectedIDs))
+	}
+	updated, _ = m.Update(keyMsg("a"))
+	m = updated.(Model)
+	if len(m.selectedIDs) != 0 {
+		t.Fatalf("a again should clear the selection, %d still selected", len(m.selectedIDs))
+	}
+	// With only some selected, a selects all.
+	m.selectedIDs[m.visibleTabs[0].ID] = true
+	updated, _ = m.Update(keyMsg("a"))
+	if got := len(updated.(Model).selectedIDs); got != 3 {
+		t.Fatalf("a with a partial selection should select all, got %d", got)
+	}
+}
+
+func TestHomeAndEndMoveTheCursor(t *testing.T) {
+	m := modelWithTabs(t, 3)
+	updated, _ := m.Update(tea.KeyPressMsg(tea.Key{Code: tea.KeyEnd}))
+	m = updated.(Model)
+	if m.cursor != 2 {
+		t.Fatalf("End should move to the last tab, cursor = %d", m.cursor)
+	}
+	updated, _ = m.Update(tea.KeyPressMsg(tea.Key{Code: tea.KeyHome}))
+	m = updated.(Model)
+	if m.cursor != 0 {
+		t.Fatalf("Home should move to the first tab, cursor = %d", m.cursor)
+	}
+	m.cursor = 2
+	updated, _ = m.Update(keyMsg("g"))
+	if updated.(Model).cursor != 0 {
+		t.Fatal("g should move to the first tab")
+	}
+}
+
+func TestSortDirectionAndURLKeys(t *testing.T) {
+	m := modelWithTabs(t, 2)
+	before := m.sortDesc
+	updated, _ := m.Update(keyMsg("o"))
+	if updated.(Model).sortDesc == before {
+		t.Error("o should flip the sort direction")
+	}
+	updated, _ = m.Update(keyMsg("v"))
+	if !updated.(Model).showFullURL {
+		t.Error("v should show the full URL column")
+	}
+}
+
+func TestCapitalLettersActLikeLowercase(t *testing.T) {
+	m := modelWithTabs(t, 2)
+	// H hibernates like h (it records an undo action and starts the command).
+	updated, cmd := m.Update(keyMsg("H"))
+	hm := updated.(Model)
+	if cmd == nil || hm.UndoStackLen() != 1 {
+		t.Error("H should hibernate like h")
+	}
+	// J moves down like j.
+	updated, _ = m.Update(keyMsg("J"))
+	if updated.(Model).cursor != 1 {
+		t.Error("J should move down like j")
+	}
+	// Q quits like q.
+	if _, cmd := m.Update(keyMsg("Q")); cmd == nil {
+		t.Error("Q should quit like q")
+	}
+}
+
+func TestRetiredKeysOnlyShowAHint(t *testing.T) {
+	cases := map[string]string{"A": "'a'", "G": "End", "S": "'o'", "U": "'v'", "D": "'h'", "d": "'h'"}
+	for key, want := range cases {
+		m := modelWithTabs(t, 3)
+		m.cursor = 1
+		updated, _ := m.Update(keyMsg(key))
+		got := updated.(Model)
+		if !strings.Contains(got.toast, want) || !strings.Contains(got.toast, "retired") {
+			t.Errorf("%s: toast %q should say the key was retired and name %s", key, got.toast, want)
+		}
+		if len(got.selectedIDs) != 0 || got.cursor != 1 || len(got.undoStack) != 0 || got.showFullURL || got.sortDesc {
+			t.Errorf("%s: a retired key must not change anything", key)
 		}
 	}
 }

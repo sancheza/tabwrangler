@@ -180,7 +180,7 @@ Execute the binary from your terminal:
 
 Expected interface:
 ```text
-  TabWrangler v1.0.20                    Tabs: 24 (Filtered: 24)  Selected: 0  Sort: Domain ↑
+  TabWrangler v1.0.21                    Tabs: 24 (Filtered: 24)  Selected: 0  Sort: Domain ↑
   [0] ALL (24)   [1] CHROME (14)   [2] FIREFOX (10)   [3] SAFARI (0)
 
   BROWSER   WINDOW   TAB   TITLE                                  DOMAIN             RAM       CPU      LAST USED
@@ -274,7 +274,7 @@ tabwrangler bridge
 | Flag | Description |
 |:--- |:--- |
 | `-h`, `--help` | Show usage screen with full keyboard shortcut list and exit |
-| `-v`, `--version` | Print application version (`1.0.20`) and exit |
+| `-v`, `--version` | Print application version (`1.0.21`) and exit |
 | `-u`, `--update` | Download and install the latest release from GitHub. With `--dry-run`, check only |
 | `--browser <name>` | Pre-filter initial view: `all`, `chrome`, `firefox`, `safari` (default: `all`) |
 | `--dry-run` | Preview tab focus, discard, and close mutations in terminal without modifying browser state |
@@ -329,23 +329,26 @@ tabwrangler --mock
 
 ### Shortcuts
 
+Every key is shown in lowercase. A capital letter does the same thing (Caps Lock is harmless). The keys `A`, `D`, `G`, `S`, and `U` from earlier versions are retired: they show a hint naming the new key and do nothing else.
+
 | Key | Context | Action |
 |:--- |:--- |:--- |
 | `j` / `k` or `↑` / `↓` | Navigation | Move cursor down / up |
-| `g` / `G` | Navigation | Jump to top / bottom of tab list |
+| `g` or `Home` | Navigation | Jump to top of tab list |
+| `End` | Navigation | Jump to bottom of tab list |
 | `Enter` or `f` | Actions | Focus tab and bring browser window to the front |
 | `h` | Actions | Hibernate memory for highlighted tab (or all selected tabs; keeps tab in browser). A tab showing in its window is hibernated after that window switches to another loaded tab |
 | `c` | Actions | Close highlighted tab (or all selected tabs; asks confirmation if > 3 tabs) |
 | `u` | Actions | Undo last close or hibernate action (reopens closed tabs or wakes hibernated tabs) |
 | `Space` | Selection | Toggle checkbox selection on highlighted tab |
-| `a` / `A` | Selection | Select all visible tabs / Clear all selections |
+| `a` | Selection | Select all visible tabs; press again to clear the selection |
 | `0`–`3` or `[` / `]` | Filters | Switch browser tab filter: `[0] All`, `[1] Chrome`, `[2] Firefox`, `[3] Safari` |
 | `/` | Filters | Enter live search filter (matches `Title`, `URL`, `Domain`) |
 | `Esc` | Filters | Clear search filter or dismiss modal |
 | `s` | Sorting | Step sort direction (most ⇄ least, A ⇄ Z), then advance to next column |
-| `S` | Sorting | Invert current sort direction |
+| `o` | Sorting | Invert current sort direction |
 | `t` | Display | Toggle visibility of internal/special tabs (`chrome://*`, `about:*`, `file://*`) |
-| `U` | Display | Toggle full URL column visibility |
+| `v` | Display | Toggle full URL column visibility |
 | `r` | Lifecycle | Refresh tab snapshot and host process telemetry on demand |
 | `?` | Helpers | Toggle in-app help modal explaining concepts and shortcuts |
 | `i` | Helpers | Toggle in-app diagnostics modal: bridge connection status and the version of each companion extension |

@@ -2,6 +2,16 @@
 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follow [Semantic Versioning](https://semver.org/).
 
+## 1.0.21 - 2026-11-24
+
+### Changed
+
+- Every command has one lowercase key, and a capital letter does the same thing, so Caps Lock is harmless.
+- `a` selects all visible tabs, and pressing it again clears the selection (it replaces `a` and `A`).
+- `Home` (or `g`) jumps to the top and `End` jumps to the bottom (replaces `g` and `G`).
+- `o` flips the sort direction (was `S`). `v` shows or hides the full URL column (was `U`).
+- The retired keys `A`, `D`, `G`, `S`, `U`, and `d` show a hint naming the new key and do nothing else.
+
 ## 1.0.20 - 2026-11-24
 
 ### Changed

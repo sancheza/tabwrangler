@@ -315,7 +315,7 @@ func (m Model) renderKeybindBar() string {
 		return StyleKeybindBar.Width(m.width).Render(bar)
 	}
 
-	shortcuts := "Enter/f: Focus  |  h: Hibernate  |  c: Close  |  u: Undo  |  Space: Select  |  a/A: All/None  |  s: Sort  |  /: Filter  |  r: Refresh  |  ?: Help  |  q: Quit"
+	shortcuts := "Enter/f: Focus  |  h: Hibernate  |  c: Close  |  u: Undo  |  Space: Select  |  a: All/None  |  s: Sort  |  /: Filter  |  r: Refresh  |  ?: Help  |  q: Quit"
 	return StyleKeybindBar.Width(m.width).Render(shortcuts)
 }
 
@@ -339,9 +339,10 @@ Core Concepts:
 
 Navigation:
   j / k or ↓ / ↑    Move cursor down / up
-  g / G             Jump to top / bottom of list
+  g or Home         Jump to top of list
+  End               Jump to bottom of list
   Space             Toggle selection on highlighted tab
-  a / A             Select all visible tabs / Clear selection
+  a                 Select all visible tabs (press again to clear the selection)
   0 – 3             Filter browser (0: All, 1: Chrome, 2: Firefox, 3: Safari)
   [ / ]             Cycle through browser scopes
 
@@ -349,9 +350,9 @@ Filtering & View:
   /                 Enter fuzzy/substring search
   Esc               Clear search filter / cancel modal
   s                 Toggle sort direction (most ⇄ least, A ⇄ Z), then advance column
-  S                 Invert current sort direction
+  o                 Invert current sort direction
   t                 Toggle special/internal tabs (chrome://*, about:*)
-  U                 Toggle inline full URL column
+  v                 Toggle inline full URL column
 
 Actions:
   Enter or f        Focus tab & raise browser window to front
