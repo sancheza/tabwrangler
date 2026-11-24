@@ -111,3 +111,36 @@ func TestCopyDir(t *testing.T) {
 		t.Fatalf("expected content %q, got %q", expectedContent, string(gotContent))
 	}
 }
+
+func TestInstallBinaryReplacesLockedFile(t *testing.T) {
+	if os.Geteuid() == 0 {
+		t.Skip("permissions are not enforced for root")
+	}
+	dir := t.TempDir()
+	src := filepath.Join(dir, "new.exe")
+	dst := filepath.Join(dir, "installed.exe")
+	if err := os.WriteFile(src, []byte("new"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	// A read-only file stands in for a running program that cannot be overwritten in place.
+	if err := os.WriteFile(dst, []byte("old"), 0444); err != nil {
+		t.Fatal(err)
+	}
+	if err := InstallBinary(src, dst); err != nil {
+		t.Fatalf("InstallBinary failed: %v", err)
+	}
+	got, err := os.ReadFile(dst)
+	if err != nil || string(got) != "new" {
+		t.Fatalf("installed file = %q, %v; want %q", got, err, "new")
+	}
+	if _, err := os.Stat(dst + ".old"); !os.IsNotExist(err) {
+		t.Errorf("expected the renamed old copy to be removed, stat err = %v", err)
+	}
+}
+
+func TestInstallBinaryMissingSource(t *testing.T) {
+	dir := t.TempDir()
+	if err := InstallBinary(filepath.Join(dir, "nope.exe"), filepath.Join(dir, "dst.exe")); err == nil {
+		t.Fatal("expected an error for a missing source file")
+	}
+}

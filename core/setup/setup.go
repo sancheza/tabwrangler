@@ -139,11 +139,12 @@ func Run(binaryPath string, openBrowser bool, customChromeID string) error {
 		installedBinaryPath := filepath.Join(tabWranglerDir, "tabwrangler.exe")
 		absBin, _ := filepath.Abs(binaryPath)
 		if absBin != "" && absBin != installedBinaryPath {
-			if inData, err := os.ReadFile(absBin); err == nil {
-				if err := os.WriteFile(installedBinaryPath, inData, 0755); err == nil {
-					binaryPath = installedBinaryPath
-					fmt.Printf("\033[32m[OK]\033[0m Installed persistent binary: %s\n", installedBinaryPath)
-				}
+			if err := InstallBinary(absBin, installedBinaryPath); err != nil {
+				fmt.Printf("\033[38;5;214m[WARNING]\033[0m Could not install %s: %v\n", installedBinaryPath, err)
+				fmt.Printf("          Close TabWrangler and your browsers, then run setup again.\n")
+			} else {
+				binaryPath = installedBinaryPath
+				fmt.Printf("\033[32m[OK]\033[0m Installed persistent binary: %s\n", installedBinaryPath)
 			}
 		}
 
@@ -362,6 +363,7 @@ func copyDir(src, dst string) error {
 		return os.WriteFile(targetPath, data, info.Mode())
 	})
 }
+
 // to automatically discover unpacked extension IDs matching TabWrangler.
 // discoverInstalledExtensionIDs scans Chromium user profile directories (Chrome, Edge, Brave)
 // across all profiles (Default, Profile 1, custom profile names with spaces)
@@ -408,4 +410,30 @@ func discoverInstalledExtensionIDs(localAppData string) []string {
 		}
 	}
 	return ids
+}
+
+// InstallBinary copies the executable at src to dst, replacing any existing file.
+//
+// Windows refuses to overwrite a program that is running (the browser keeps TabWrangler's
+// bridge host running), but allows renaming it. When the direct write fails, the running file
+// is renamed aside and the new one is written under the original name.
+func InstallBinary(src, dst string) error {
+	data, err := os.ReadFile(src)
+	if err != nil {
+		return fmt.Errorf("failed reading %s: %w", src, err)
+	}
+	old := dst + ".old"
+	_ = os.Remove(old) // left over from an earlier upgrade; fails harmlessly while that copy still runs
+	if err := os.WriteFile(dst, data, 0755); err == nil {
+		return nil
+	}
+	if err := os.Rename(dst, old); err != nil {
+		return fmt.Errorf("failed replacing %s: %w", dst, err)
+	}
+	if err := os.WriteFile(dst, data, 0755); err != nil {
+		_ = os.Rename(old, dst)
+		return fmt.Errorf("failed writing %s: %w", dst, err)
+	}
+	_ = os.Remove(old)
+	return nil
 }

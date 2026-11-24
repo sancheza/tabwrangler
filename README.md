@@ -180,7 +180,7 @@ Execute the binary from your terminal:
 
 Expected interface:
 ```text
-  TabWrangler v1.0.15                    Tabs: 24 (Filtered: 24)  Selected: 0  Sort: Domain ↑
+  TabWrangler v1.0.16                    Tabs: 24 (Filtered: 24)  Selected: 0  Sort: Domain ↑
   [0] ALL (24)   [1] CHROME (14)   [2] FIREFOX (10)   [3] SAFARI (0)
 
   BROWSER   WINDOW   TAB   TITLE                                  DOMAIN             RAM       CPU      LAST USED
@@ -216,9 +216,9 @@ curl -fsSL https://raw.githubusercontent.com/sancheza/tabwrangler/main/install.s
 cp tabwrangler-darwin-arm64 ~/.local/bin/tabwrangler.new && mv -f ~/.local/bin/tabwrangler.new ~/.local/bin/tabwrangler
 ```
 
-**Windows (Command Prompt):**
+**Windows (Command Prompt):** extract the new `tabwrangler-windows-amd64.zip`, then run setup from the extracted folder. Setup replaces the installed program and the extension folder in `%LOCALAPPDATA%\TabWrangler\`.
 ```cmd
-copy /Y tabwrangler.exe %LOCALAPPDATA%\TabWrangler\tabwrangler.exe
+.\tabwrangler.exe setup
 ```
 
 #### Option C: Build from Source
@@ -232,6 +232,12 @@ cp tabwrangler ~/.local/bin/tabwrangler
 ```
 
 #### Reloading Companion Extensions
+
+Confirm the installed version after upgrading:
+
+```cmd
+%LOCALAPPDATA%\TabWrangler\tabwrangler.exe --version
+```
 
 When an upgrade updates the companion WebExtension in `extension/`:
 - **Chrome / Edge / Brave:** Open `chrome://extensions` and click the **Reload** (circular arrow) icon on the TabWrangler Companion card.
@@ -255,7 +261,7 @@ tabwrangler bridge
 | Flag | Description |
 |:--- |:--- |
 | `-h`, `--help` | Show usage screen with full keyboard shortcut list and exit |
-| `-v`, `--version` | Print application version (`1.0.15`) and exit |
+| `-v`, `--version` | Print application version (`1.0.16`) and exit |
 | `--browser <name>` | Pre-filter initial view: `all`, `chrome`, `firefox`, `safari` (default: `all`) |
 | `--dry-run` | Preview tab focus, discard, and close mutations in terminal without modifying browser state |
 | `--mock` | Launch with simulated multi-browser tab data for testing and offline demonstrations |

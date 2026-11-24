@@ -266,3 +266,61 @@ func TestBridgeRunnerInjectsTokenIntoRegistration(t *testing.T) {
 	stdinW.Close()
 	<-done
 }
+
+func TestBridgeHostSurvivesTabWranglerRestart(t *testing.T) {
+	sockPath := bridge.SocketPath()
+	if _, err := os.Stat(sockPath); err == nil {
+		t.Skip("default bridge socket in use by a running TabWrangler")
+	}
+	first := bridge.NewServer()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	if err := first.Start(ctx); err != nil {
+		t.Fatalf("Failed starting first bridge server: %v", err)
+	}
+
+	stdinR, stdinW, _ := os.Pipe()
+	stdoutR, stdoutW, _ := os.Pipe()
+	origIn, origOut := os.Stdin, os.Stdout
+	os.Stdin, os.Stdout = stdinR, stdoutW
+	defer func() { os.Stdin, os.Stdout = origIn, origOut }()
+	defer stdoutR.Close()
+
+	done := make(chan struct{})
+	go func() {
+		_ = bridge.RunNativeMessagingBridge()
+		close(done)
+	}()
+
+	waitConnected := func(s *bridge.Server, what string) {
+		deadline := time.Now().Add(3 * time.Second)
+		for !s.IsBrowserConnected(types.BrowserChrome) && time.Now().Before(deadline) {
+			time.Sleep(20 * time.Millisecond)
+		}
+		if !s.IsBrowserConnected(types.BrowserChrome) {
+			t.Fatalf("Expected Chrome to be registered with %s", what)
+		}
+	}
+
+	// The extension registers once, when the browser starts the host.
+	if err := bridge.WriteNativeMessage(stdinW, []byte(`{"action":"register","browser":"chrome"}`)); err != nil {
+		t.Fatalf("Failed writing native message: %v", err)
+	}
+	waitConnected(first, "the first TabWrangler")
+
+	// TabWrangler quits and starts again. The extension does not register again.
+	first.Close()
+	second := bridge.NewServer()
+	if err := second.Start(ctx); err != nil {
+		t.Fatalf("Failed starting second bridge server: %v", err)
+	}
+	defer second.Close()
+	waitConnected(second, "the restarted TabWrangler")
+
+	stdinW.Close()
+	select {
+	case <-done:
+	case <-time.After(3 * time.Second):
+		t.Fatal("Expected the host to exit after the browser closed its pipe")
+	}
+}

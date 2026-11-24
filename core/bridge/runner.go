@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -40,7 +41,13 @@ func IsNativeMessagingInvocation(args []string) bool {
 	return false
 }
 
+// connectPollInterval is how often the bridge host looks for a running TabWrangler.
+const connectPollInterval = 200 * time.Millisecond
+
 // RunNativeMessagingBridge connects stdin/stdout Native Messaging to the local IPC socket.
+//
+// The host stays alive while the browser keeps its end open. When TabWrangler quits, the host waits
+// and registers again when TabWrangler next starts, so a relaunch finds the browser already connected.
 func RunNativeMessagingBridge() error {
 	sockPath := SocketPath()
 	network := "unix"
@@ -49,11 +56,12 @@ func RunNativeMessagingBridge() error {
 	}
 	Log("RunNativeMessagingBridge started: sockPath=%s network=%s", sockPath, network)
 
-	// Buffer messages from browser stdin while waiting for TUI IPC connection
+	// Buffer messages from the browser while no TabWrangler is connected.
 	inMessages := make(chan []byte, 100)
 	stdinClosed := make(chan struct{})
+	var regMu sync.Mutex
+	var lastRegister []byte
 
-	// Goroutine: Read from browser extension stdin immediately
 	go func() {
 		defer close(stdinClosed)
 		for {
@@ -63,6 +71,11 @@ func RunNativeMessagingBridge() error {
 				return
 			}
 			Log("Received native message on stdin (len=%d)", len(payload))
+			if isRegister(payload) {
+				regMu.Lock()
+				lastRegister = append([]byte(nil), payload...)
+				regMu.Unlock()
+			}
 			select {
 			case inMessages <- payload:
 			default:
@@ -71,43 +84,73 @@ func RunNativeMessagingBridge() error {
 		}
 	}()
 
-	// Connect to local TabWrangler IPC server (wait patiently if TUI is launching)
-	var conn net.Conn
-	var err error
-	var token string
-	attempt := 0
-	for {
-		attempt++
+	for first := true; ; first = false {
+		conn, token := dialTabWrangler(network, sockPath, stdinClosed)
+		if conn == nil {
+			Log("Browser closed pipe before TUI connected, exiting bridge")
+			return nil
+		}
+		Log("Bridge connected to local IPC server at %s", sockPath)
+
+		// Messages buffered before this connection are answers to a TabWrangler that is gone.
+		// The registration is replayed from the saved copy instead.
+		for len(inMessages) > 0 {
+			<-inMessages
+		}
+		regMu.Lock()
+		reg := lastRegister
+		regMu.Unlock()
+		if reg != nil {
+			if !first {
+				Log("Bridge: registering again with the new TabWrangler")
+			}
+			if _, err := conn.Write(append(withToken(reg, token), '\n')); err != nil {
+				Log("Error writing registration to IPC socket: %v", err)
+				_ = conn.Close()
+				continue
+			}
+		}
+
+		if runSession(conn, token, inMessages, stdinClosed) {
+			return nil
+		}
+		Log("Bridge: TabWrangler closed the connection; waiting for it to start again")
+	}
+}
+
+// dialTabWrangler polls until it connects to a running TabWrangler or the browser closes its pipe.
+// It returns a nil connection in the second case.
+func dialTabWrangler(network, sockPath string, stdinClosed <-chan struct{}) (net.Conn, string) {
+	for attempt := 1; ; attempt++ {
 		began := time.Now()
-		token, err = ReadToken(sockPath)
+		token, err := ReadToken(sockPath)
+		var conn net.Conn
 		if err == nil {
 			conn, err = net.Dial(network, sockPath)
 		}
-		if err != nil && (attempt <= 5 || attempt%20 == 0) {
-			Log("Bridge: connect attempt %d failed after %s: %v", attempt, time.Since(began).Round(time.Millisecond), err)
-		}
 		if err == nil {
 			Log("Bridge: connect attempt %d succeeded after %s", attempt, time.Since(began).Round(time.Millisecond))
-			Log("Bridge connected to local IPC server at %s", sockPath)
-			break
+			return conn, token
+		}
+		if attempt <= 3 || attempt%300 == 0 {
+			Log("Bridge: connect attempt %d failed after %s: %v", attempt, time.Since(began).Round(time.Millisecond), err)
 		}
 		select {
 		case <-stdinClosed:
-			Log("Browser closed pipe before TUI connected, exiting bridge")
-			return nil
-		case <-time.After(500 * time.Millisecond):
+			return nil, ""
+		case <-time.After(connectPollInterval):
 		}
 	}
-	defer conn.Close()
+}
 
+// runSession forwards messages between the browser and one TabWrangler connection.
+// It returns true when the browser closed its pipe and false when TabWrangler closed the connection.
+func runSession(conn net.Conn, token string, inMessages chan []byte, stdinClosed <-chan struct{}) bool {
 	done := make(chan struct{})
-
-	// Goroutine 1: Read from local IPC socket and write to browser extension stdout
 	go func() {
 		defer close(done)
 		scanner := bufio.NewScanner(conn)
-		buf := make([]byte, 1024*1024)
-		scanner.Buffer(buf, 16*1024*1024)
+		scanner.Buffer(make([]byte, 1024*1024), 16*1024*1024)
 		for scanner.Scan() {
 			line := scanner.Bytes()
 			if len(line) == 0 {
@@ -121,39 +164,54 @@ func RunNativeMessagingBridge() error {
 		}
 	}()
 
-	// Goroutine 2: Flush buffered messages, then forward incoming stdin messages to local IPC socket
+	stop := make(chan struct{})
+	var wg sync.WaitGroup
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		for {
 			select {
-			case payload, ok := <-inMessages:
-				if !ok {
+			case payload := <-inMessages:
+				var js json.RawMessage
+				if err := json.Unmarshal(payload, &js); err != nil {
+					continue
+				}
+				payload = withToken(payload, token)
+				Log("Forwarding stdin payload to TUI IPC socket (len=%d)", len(payload))
+				if _, err := conn.Write(append(payload, '\n')); err != nil {
+					Log("Error writing payload to IPC socket: %v", err)
 					_ = conn.Close()
 					return
 				}
-				// Ensure newline delimited for the IPC socket
-				var js json.RawMessage
-				if err := json.Unmarshal(payload, &js); err == nil {
-					payload = withToken(payload, token)
-					Log("Forwarding stdin payload to TUI IPC socket (len=%d)", len(payload))
-					if _, err := conn.Write(append(payload, '\n')); err != nil {
-						Log("Error writing payload to IPC socket: %v", err)
-						return
-					}
-				}
 			case <-stdinClosed:
-				// Drain any remaining inMessages
 				for len(inMessages) > 0 {
-					payload := withToken(<-inMessages, token)
-					_, _ = conn.Write(append(payload, '\n'))
+					_, _ = conn.Write(append(withToken(<-inMessages, token), '\n'))
 				}
-				_ = conn.Close()
+				return
+			case <-stop:
 				return
 			}
 		}
 	}()
 
-	<-done
-	return nil
+	browserClosed := false
+	select {
+	case <-done:
+	case <-stdinClosed:
+		browserClosed = true
+	}
+	close(stop)
+	wg.Wait()
+	_ = conn.Close()
+	return browserClosed
+}
+
+// isRegister reports whether a native message is the extension's registration.
+func isRegister(payload []byte) bool {
+	var msg struct {
+		Action string `json:"action"`
+	}
+	return json.Unmarshal(payload, &msg) == nil && msg.Action == ActionRegister
 }
 
 // withToken adds the per-run token to a registration message. Other messages pass through unchanged.

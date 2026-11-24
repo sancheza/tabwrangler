@@ -2,10 +2,16 @@
 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follow [Semantic Versioning](https://semver.org/).
 
-## Unreleased
+## 1.0.16 - 2026-11-24
+
+### Fixed
+
+- The browser's bridge host stays running when TabWrangler quits and registers again when TabWrangler starts. Relaunching within a few seconds of quitting no longer waits for the browser to restart the host (about 2 seconds on Windows). The host looks for TabWrangler every 200 ms.
+- `tabwrangler setup` on Windows replaces the installed program even while a browser has it running, and reports a warning when it cannot, instead of skipping the copy silently.
 
 ### Documentation
 
+- The Windows upgrade steps use `setup`, which replaces the installed program.
 - README explains the harmless `background.scripts` warning in Chrome.
 
 ## 1.0.15 - 2026-11-24
