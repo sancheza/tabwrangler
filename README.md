@@ -1,6 +1,10 @@
 # TabWrangler (`tabwrangler`)
 
-TabWrangler is a fast, keyboard-driven Terminal User Interface (TUI) for macOS and Windows that provides centralized visibility and control over open tabs across Google Chrome, Mozilla Firefox, and Apple Safari.
+TabWrangler is a fast, keyboard-driven Terminal User Interface (TUI) for macOS, Windows, and Linux that provides centralized visibility, telemetry correlation, and lifecycle control over open tabs across Google Chrome, Mozilla Firefox, and Apple Safari.
+
+> **Quick Start:** To install a pre-built binary and launch TabWrangler in under two minutes without compiling from source, jump down to [3. Quick Start & Installation](#3-quick-start--installation).
+
+---
 
 ## 1. Features
 
@@ -13,18 +17,43 @@ TabWrangler is a fast, keyboard-driven Terminal User Interface (TUI) for macOS a
 - **Zero Background Polling:** Refreshes on startup, on-demand (`r`), and immediately following user actions.
 - **Internal Tab Filtering:** Filters `chrome://*`, `about:*`, and blank tabs by default; toggled instantly with `t`.
 
+---
+
 ## 2. Requirements
 
-- **Go:** 1.24+ (to build from source)
-- **Supported Operating Systems:** macOS (12+), Windows 10/11
+- **Supported Operating Systems:** macOS (12+), Windows 10/11 (64-bit), Linux (x86_64, arm64)
 - **Supported Browsers:**
-  - Google Chrome (via companion extension)
-  - Mozilla Firefox (via companion extension)
-  - Apple Safari (macOS only, via native AppleScript automation)
+  - **Google Chrome / Microsoft Edge / Brave:** Supported via companion WebExtension.
+  - **Mozilla Firefox:** Supported via companion WebExtension (or session fallback).
+  - **Apple Safari:** Supported out of the box on macOS via native automation (zero extensions required).
+- **Go (Optional):** Go 1.24+ (only required if building from source).
 
-## 3. Installation & Setup
+---
 
-### 3.1 Build from Source
+## 3. Quick Start & Installation
+
+### 3.1 Option A: Download Pre-Compiled Binary
+
+Download the archive for your operating system from the [Latest Release](https://github.com/sancheza/tabwrangler/releases/latest):
+
+| Platform | Download | Package Contents |
+|:--- |:--- |:--- |
+| **Windows (x64)** | [tabwrangler-windows-amd64.zip](https://github.com/sancheza/tabwrangler/releases/latest/download/tabwrangler-windows-amd64.zip) | `tabwrangler.exe`, `extension/` directory |
+| **macOS (Apple Silicon)** | [tabwrangler-darwin-arm64](https://github.com/sancheza/tabwrangler/releases/latest/download/tabwrangler-darwin-arm64) | Standalone binary |
+| **macOS (Intel)** | [tabwrangler-darwin-amd64](https://github.com/sancheza/tabwrangler/releases/latest/download/tabwrangler-darwin-amd64) | Standalone binary |
+| **Linux (x86_64)** | [tabwrangler-linux-amd64](https://github.com/sancheza/tabwrangler/releases/latest/download/tabwrangler-linux-amd64) | Standalone binary |
+| **Linux (ARM64)** | [tabwrangler-linux-arm64](https://github.com/sancheza/tabwrangler/releases/latest/download/tabwrangler-linux-arm64) | Standalone binary |
+
+Extract the ZIP archive (Windows) or mark the downloaded binary executable (macOS/Linux):
+
+```bash
+chmod +x tabwrangler-darwin-arm64
+mv tabwrangler-darwin-arm64 tabwrangler
+```
+
+### 3.2 Option B: Build from Source
+
+Objective: Compile the application binary directly from the Git repository.
 
 ```bash
 git clone https://github.com/sancheza/tabwrangler.git
@@ -32,93 +61,162 @@ cd tabwrangler
 go build -o tabwrangler ./cmd/tabwrangler
 ```
 
-### 3.2 Register Browser Bridges
+Expected output: An executable binary `tabwrangler` (or `tabwrangler.exe` on Windows) generated in the current directory.
 
-Run the setup command to register Native Messaging host manifests for Chrome, Edge, and Firefox (and on Windows, write the required registry keys under `HKCU\Software`):
+### 3.3 Register Native Messaging Host
 
-On macOS / Linux:
+Objective: Register TabWrangler with the host operating system and browsers so companion extensions can establish local IPC communication.
+
+Run the `setup` subcommand:
+
+**macOS / Linux:**
 ```bash
 ./tabwrangler setup
 ```
 
-On Windows (Command Prompt or PowerShell):
+**Windows (Command Prompt or PowerShell):**
 ```cmd
 tabwrangler.exe setup
 ```
 
 Expected output:
 ```text
-[OK] Chrome native messaging manifest installed: ...
-[OK] Firefox native messaging manifest installed: ...
-[OK] Registered Google\Chrome in Windows Registry: HKCU\Software\Google\Chrome\NativeMessagingHosts\com.tabwrangler.bridge
-[OK] Copied extension directory to Windows clipboard
+[INFO] Configuring Native Messaging host for TabWrangler...
+[OK] Installed persistent binary: C:\Users\<Username>\AppData\Local\TabWrangler\tabwrangler.exe
+[OK] Chrome native messaging manifest installed: C:\Users\<Username>\AppData\Local\TabWrangler\NativeMessagingHosts\com.tabwrangler.bridge.json
+[OK] Firefox native messaging manifest installed: C:\Users\<Username>\AppData\Roaming\Mozilla\NativeMessagingHosts\com.tabwrangler.bridge.json
+[INFO] Registering Native Messaging hosts in Windows Registry...
+[OK] Registered Google\Chrome across 32-bit & 64-bit Windows Registry views
+[OK] Registered Microsoft\Edge across 32-bit & 64-bit Windows Registry views
+[OK] Registered Chromium across 32-bit & 64-bit Windows Registry views
+[OK] Registered BraveSoftware\Brave-Browser across 32-bit & 64-bit Windows Registry views
+[OK] Registered Mozilla across 32-bit & 64-bit Windows Registry views
+[OK] Copied extension directory to Windows clipboard: C:\Users\<Username>\AppData\Local\TabWrangler\extension
+[OK] Setup complete. Load the extension from the 'extension/' directory into your browsers.
 ```
 
-### 3.3 Install Companion Extension
+The setup command places the binary into a persistent application directory (`%LOCALAPPDATA%\TabWrangler\` on Windows) and copies the path to the `extension/` folder directly to your clipboard.
 
-1. In Chrome (or Edge), navigate to `chrome://extensions`, enable **Developer mode**, click **Load unpacked**, and select the `extension/` directory (already copied to your clipboard during setup).
-2. In Firefox, navigate to `about:debugging`, click **This Firefox**, click **Load Temporary Add-on**, and select `extension/manifest.json`.
+### 3.4 Load Companion Extension into Browsers
 
-## 4. Usage
+Objective: Install the unpacked Manifest V3 companion extension in your browser.
 
-Launch TabWrangler in interactive TUI mode:
+#### Google Chrome / Microsoft Edge / Brave:
+1. Open your browser and navigate to `chrome://extensions` (or `edge://extensions` / `brave://extensions`).
+2. Toggle on **Developer mode** in the top right corner.
+3. Click the **Load unpacked** button in the top left header.
+4. Select the `extension/` folder in the file dialog (or paste the path already on your clipboard into the folder selection bar).
+5. Confirm that **TabWrangler Companion** appears in your extension list with no error badges.
+
+#### Mozilla Firefox:
+1. Open Firefox and navigate to `about:debugging#/runtime/this-firefox`.
+2. Click **Load Temporary Add-on...**.
+3. Select `extension/manifest.json` from the extracted TabWrangler folder.
+
+#### Apple Safari:
+No extension installation is needed. Safari tabs are read and controlled directly via macOS AppleScript automation. If prompted on first launch, click **OK** in macOS System Settings to grant automation permission.
+
+### 3.5 Launch for the First Time
+
+Objective: Launch the interactive terminal UI and inspect your tabs.
+
+Execute the binary from your terminal:
+
+**macOS / Linux:**
+```bash
+./tabwrangler
+```
+
+**Windows:**
+```cmd
+tabwrangler.exe
+```
+
+Expected interface:
+```text
+  TabWrangler v1.0.1                     Tabs: 24 (Filtered: 24)  Selected: 0  Sort: RAM ↓
+  [0] ALL (24)   [1] CHROME (14)   [2] FIREFOX (10)   [3] SAFARI (0)
+
+  BROWSER   WINDOW   TAB   TITLE                                  DOMAIN             RAM       CPU      LAST USED
+  ● Chrome  win:1    #1    GitHub - sancheza/tabwrangler          github.com         ~142 MB   0.2%     2m ago
+  ● Chrome  win:1    #2    Pull Requests · sancheza/tabwrangler   github.com         ~128 MB   0.0%     14m ago
+  ● Firefox win:1    #1    Python Documentation                   docs.python.org    ~94 MB    0.0%     1h ago
+  ...
+  ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  [Enter/f] Focus   [d] Discard   [c] Close   [/] Filter   [s] Sort   [t] Internal   [r] Refresh   [q] Quit
+```
+
+---
+
+## 4. CLI Usage & Flags
+
+Run `tabwrangler -h` or `tabwrangler --help` to view all command options:
 
 ```bash
-tabwrangler
+tabwrangler [flags]
+tabwrangler setup [--open] [--chrome-id <id>]
+tabwrangler bridge
 ```
 
-Launch pre-filtered to specific browsers:
+### Flags
 
+| Flag | Description |
+|:--- |:--- |
+| `-h`, `--help` | Show usage screen with full keyboard shortcut list and exit |
+| `-v`, `--version` | Print application version (`1.0.1`) and exit |
+| `--browser <name>` | Pre-filter initial view: `all`, `chrome`, `firefox`, `safari` (default: `all`) |
+| `--dry-run` | Preview tab focus, discard, and close mutations in terminal without modifying browser state |
+| `--mock` | Launch with simulated multi-browser tab data for testing and offline demonstrations |
+
+### Examples
+
+Launch pre-filtered to Firefox tabs only:
 ```bash
-tabwrangler --browser chrome,firefox
+tabwrangler --browser firefox
 ```
 
-Launch with mock data for testing or demonstrations:
-
-```bash
-tabwrangler --mock
-```
-
-Execute non-destructive dry runs:
-
+Preview mutations safely without closing or discarding tabs:
 ```bash
 tabwrangler --dry-run
 ```
 
-Display version information:
-
+Launch offline test UI with mock data:
 ```bash
-tabwrangler --version
+tabwrangler --mock
 ```
 
-## 5. Keyboard Navigation
+---
 
-| Key | Action |
-|:--- |:--- |
-| `j` / `k` or `↑` / `↓` | Move cursor down / up |
-| `g` / `G` | Jump to top / bottom of list |
-| `Space` | Toggle selection on highlighted tab |
-| `a` / `A` | Select all visible tabs / Clear all selections |
-| `0`–`3` or `[` / `]` | Switch browser filter (`All`, `Chrome`, `Firefox`, `Safari`) |
-| `/` | Enter live filter query (matches `Title`, `URL`, `Domain`) |
-| `Esc` | Clear filter or cancel confirmation |
-| `s` | Toggle sort direction (most ⇄ least, A ⇄ Z), then advance to next column |
-| `S` | Invert current sort direction |
-| `t` | Toggle special/internal tabs (`chrome://*`, `about:*`, `file://*`) |
-| `u` | Toggle full URL column visibility |
-| `Enter` or `f` | Focus highlighted tab and bring browser to foreground |
-| `d` | Discard selected tabs (or highlighted tab) to free RAM |
-| `c` | Close selected tabs (or highlighted tab) |
-| `r` | Refresh tab snapshot on demand |
-| `i` | Show bridge diagnostics modal |
-| `?` | Toggle help overlay |
-| `q` / `Ctrl+C` | Quit TabWrangler |
+## 5. Keyboard Navigation & Shortcuts
 
-## 6. Architecture & Standards
+| Key | Context | Action |
+|:--- |:--- |:--- |
+| `j` / `k` or `↑` / `↓` | Navigation | Move cursor down / up |
+| `g` / `G` | Navigation | Jump to top / bottom of tab list |
+| `Enter` or `f` | Actions | Focus tab and bring browser window to the front |
+| `d` | Actions | Discard memory for highlighted tab (or all selected tabs) |
+| `c` | Actions | Close highlighted tab (or all selected tabs; asks confirmation if > 3 tabs) |
+| `Space` | Selection | Toggle checkbox selection on highlighted tab |
+| `a` / `A` | Selection | Select all visible tabs / Clear all selections |
+| `0`–`3` or `[` / `]` | Filters | Switch browser tab filter: `[0] All`, `[1] Chrome`, `[2] Firefox`, `[3] Safari` |
+| `/` | Filters | Enter live search filter (matches `Title`, `URL`, `Domain`) |
+| `Esc` | Filters | Clear search filter or dismiss modal |
+| `s` | Sorting | Step sort direction (most ⇄ least, A ⇄ Z), then advance to next column |
+| `S` | Sorting | Invert current sort direction |
+| `t` | Display | Toggle visibility of internal/special tabs (`chrome://*`, `about:*`, `file://*`) |
+| `u` | Display | Toggle full URL column visibility |
+| `r` | Lifecycle | Refresh tab snapshot and host process telemetry on demand |
+| `?` | Helpers | Toggle in-app diagnostics modal and bridge connection status |
+| `q` / `Ctrl+C` | Lifecycle | Quit TabWrangler |
 
-TabWrangler conforms to repository and coding standards:
+---
+
+## 6. Architecture & Engineering Standards
+
+TabWrangler is implemented according to repository and engineering architecture standards:
 - Dev ADR 0001: Architecture Decisions
 - Dev ADR 0002: Standard Repository Layout
 - Dev ADR 0003: Code Placement by Scope
 - Dev ADR 0005: Command-Line Conventions
+- Dev ADR 0020: Terminal Logging & Colors
 - Repo ADR 0001: Cross-Browser TUI Architecture
