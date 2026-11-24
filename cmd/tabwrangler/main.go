@@ -18,7 +18,7 @@ import (
 	"github.com/sancheza/tabwrangler/core/types"
 )
 
-const Version = "1.0.4"
+const Version = "1.0.5"
 
 // printUsage renders formatted, colorized CLI usage instructions, examples, and keyboard shortcuts to stdout.
 func printUsage() {
@@ -221,13 +221,14 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	var bridgeServer *bridge.Server
 	if mockFlag {
 		coll.RegisterAdapter(collector.NewMockAdapter(types.BrowserChrome))
 		coll.RegisterAdapter(collector.NewMockAdapter(types.BrowserFirefox))
 		coll.RegisterAdapter(collector.NewMockAdapter(types.BrowserSafari))
 	} else {
 		// Start IPC bridge server for Chrome & Firefox
-		bridgeServer := bridge.NewServer()
+		bridgeServer = bridge.NewServer()
 		if err := bridgeServer.Start(ctx); err != nil {
 			// If IPC socket fails, log warning but continue
 			fmt.Fprintf(os.Stderr, "Notice: local bridge socket unavailable: %v\n", err)
@@ -240,6 +241,12 @@ func main() {
 
 	model := tui.NewModel(coll, initialBrowser, dryRunFlag)
 	p := tea.NewProgram(model)
+
+	if bridgeServer != nil {
+		bridgeServer.SetOnRegister(func(b types.BrowserType) {
+			p.Send(tui.TriggerRefreshMsg{})
+		})
+	}
 
 	if _, err := p.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "Runtime error: %v\n", err)

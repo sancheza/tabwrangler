@@ -200,14 +200,54 @@ function sendResponse(resp) {
   }
 }
 
-// Connect immediately on startup
+// Manifest V3 lifecycle hooks
+const runtimeAPI = (typeof browser !== "undefined" && browser.runtime) ? browser.runtime : (typeof chrome !== "undefined" ? chrome.runtime : null);
+
+if (runtimeAPI) {
+  // Fires when unpacked extension is first loaded or re-installed
+  if (runtimeAPI.onInstalled) {
+    runtimeAPI.onInstalled.addListener(() => {
+      console.log("[TabWrangler] onInstalled fired, connecting native host...");
+      connectNative();
+    });
+  }
+
+  // Fires when browser launches
+  if (runtimeAPI.onStartup) {
+    runtimeAPI.onStartup.addListener(() => {
+      console.log("[TabWrangler] onStartup fired, connecting native host...");
+      connectNative();
+    });
+  }
+}
+
+// Connect immediately on initial script evaluation
 connectNative();
 
-// Reconnect whenever user switches or updates tabs if disconnected
+// Comprehensive browser activity hooks to reconnect if disconnected
 try {
   const tabsAPI = (typeof browser !== "undefined" && browser.tabs) ? browser.tabs : (typeof chrome !== "undefined" ? chrome.tabs : null);
-  if (tabsAPI && tabsAPI.onActivated) {
-    tabsAPI.onActivated.addListener(() => {
+  if (tabsAPI) {
+    if (tabsAPI.onActivated) {
+      tabsAPI.onActivated.addListener(() => {
+        if (!nativePort) connectNative();
+      });
+    }
+    if (tabsAPI.onCreated) {
+      tabsAPI.onCreated.addListener(() => {
+        if (!nativePort) connectNative();
+      });
+    }
+    if (tabsAPI.onUpdated) {
+      tabsAPI.onUpdated.addListener(() => {
+        if (!nativePort) connectNative();
+      });
+    }
+  }
+
+  const windowsAPI = (typeof browser !== "undefined" && browser.windows) ? browser.windows : (typeof chrome !== "undefined" ? chrome.windows : null);
+  if (windowsAPI && windowsAPI.onFocusChanged) {
+    windowsAPI.onFocusChanged.addListener(() => {
       if (!nativePort) connectNative();
     });
   }

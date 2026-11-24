@@ -45,6 +45,9 @@ type ActionDoneMsg struct {
 // ClearToastMsg is emitted to clear toast messages after a display interval.
 type ClearToastMsg struct{}
 
+// TriggerRefreshMsg triggers an immediate on-demand tab snapshot in response to an external event.
+type TriggerRefreshMsg struct{}
+
 // Model encapsulates the Bubble Tea state for TabWrangler.
 type Model struct {
 	collector       *collector.Collector

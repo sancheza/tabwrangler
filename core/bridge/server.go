@@ -39,6 +39,7 @@ type Server struct {
 	pendingMu   sync.Mutex
 	closed      bool
 	startErr    error
+	onRegister  func(types.BrowserType)
 }
 
 // NewServer initializes a new IPC bridge server.
@@ -161,7 +162,12 @@ func (s *Server) handleConn(conn net.Conn) {
 		_ = old.Close()
 	}
 	s.connections[browser] = conn
+	cb := s.onRegister
 	s.mu.Unlock()
+
+	if cb != nil {
+		go cb(browser)
+	}
 
 	defer func() {
 		Log("Server.handleConn disconnected browser: %s", browser)
@@ -196,6 +202,13 @@ func (s *Server) handleConn(conn net.Conn) {
 			s.pendingMu.Unlock()
 		}
 	}
+}
+
+// SetOnRegister sets a callback invoked when a browser client establishes a registration handshake.
+func (s *Server) SetOnRegister(fn func(types.BrowserType)) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.onRegister = fn
 }
 
 // IsBrowserConnected reports whether a live connection exists for the specified browser.
