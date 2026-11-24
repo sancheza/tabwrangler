@@ -18,7 +18,7 @@ import (
 	"github.com/sancheza/tabwrangler/core/types"
 )
 
-const Version = "1.0.9"
+const Version = "1.0.10"
 
 // printUsage renders formatted, colorized CLI usage instructions, examples, and keyboard shortcuts to stdout.
 func printUsage() {

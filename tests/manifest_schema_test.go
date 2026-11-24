@@ -71,9 +71,15 @@ func TestChromeManifestV3Compliance(t *testing.T) {
 		t.Errorf("expected manifest_version 3, got %d", m.ManifestVersion)
 	}
 
-	// 2. MV3 background MUST NOT have scripts array (causes Chrome fatal load failure)
+	// 2. MV3 background compatibility:
+	// Chrome uses service_worker; Firefox uses scripts. Having both enables dual-browser compatibility.
 	if len(m.Background.Scripts) > 0 {
-		t.Errorf("manifest background contains 'scripts' (%v); Chrome MV3 strictly forbids this and requires service_worker only", m.Background.Scripts)
+		for _, s := range m.Background.Scripts {
+			sPath := filepath.Join(baseDir, s)
+			if _, err := os.Stat(sPath); err != nil {
+				t.Errorf("background script file %s does not exist: %v", sPath, err)
+			}
+		}
 	}
 
 	// 3. Service worker must be defined and exist on disk
