@@ -75,7 +75,7 @@ jobs:
           GOARCH: ${{ matrix.arch }}
         run: |
           mkdir -p dist
-          go build -ldflags="-s -w" -o dist/tabwrangler-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }} ./cmd/tabwrangler
+          go build -trimpath -ldflags="-s -w" -o dist/tabwrangler-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }} ./cmd/tabwrangler
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
