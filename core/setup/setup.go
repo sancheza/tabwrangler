@@ -17,6 +17,7 @@ const (
 	DefaultChromeExtensionID = "ambpjofjffekeccmjjeaadoeieemmlhc"
 )
 
+// chromeManifest represents the Native Messaging host JSON manifest schema for Chromium browsers.
 type chromeManifest struct {
 	Name           string   `json:"name"`
 	Description    string   `json:"description"`
@@ -25,6 +26,7 @@ type chromeManifest struct {
 	AllowedOrigins []string `json:"allowed_origins"`
 }
 
+// firefoxManifest represents the Native Messaging host JSON manifest schema for Mozilla Firefox.
 type firefoxManifest struct {
 	Name              string   `json:"name"`
 	Description       string   `json:"description"`
@@ -215,6 +217,7 @@ func Run(binaryPath string, openBrowser bool, customChromeID string) error {
 	return nil
 }
 
+// writeManifests creates native messaging manifests for Chrome and Firefox using default and optional custom extension IDs.
 func writeManifests(chromeDir, firefoxDir, binaryPath, customChromeID string) (string, string, error) {
 	allIDs := []string{DefaultChromeExtensionID}
 	if customChromeID != "" && customChromeID != DefaultChromeExtensionID {
@@ -223,6 +226,8 @@ func writeManifests(chromeDir, firefoxDir, binaryPath, customChromeID string) (s
 	return writeManifestsWithOrigins(chromeDir, firefoxDir, binaryPath, allIDs)
 }
 
+// writeManifestsWithOrigins serializes and writes Native Messaging JSON manifests to the specified directories
+// configuring the allowed origins for Chrome and allowed extensions for Firefox.
 func writeManifestsWithOrigins(chromeDir, firefoxDir, binaryPath string, extensionIDs []string) (string, string, error) {
 	if err := os.MkdirAll(chromeDir, 0755); err != nil {
 		return "", "", fmt.Errorf("failed creating Chrome NativeMessagingHosts dir: %w", err)
@@ -271,6 +276,8 @@ func writeManifestsWithOrigins(chromeDir, firefoxDir, binaryPath string, extensi
 	return chromePath, firefoxPath, nil
 }
 
+// registerWindowsRegistry registers the Native Messaging host JSON manifest path in the Windows Registry
+// across standard HKCU, explicit 32-bit (/reg:32), explicit 64-bit (/reg:64), and Wow6432Node paths.
 func registerWindowsRegistry(browserKey, manifestPath string) {
 	// Register across standard, 32-bit (/reg:32), 64-bit (/reg:64), and Wow6432Node paths
 	cmd1 := exec.Command("reg", "add", `HKCU\Software\`+browserKey+`\NativeMessagingHosts\`+HostName, "/ve", "/t", "REG_SZ", "/d", manifestPath, "/f")
@@ -292,6 +299,8 @@ func registerWindowsRegistry(browserKey, manifestPath string) {
 	}
 }
 
+// discoverInstalledExtensionIDs scans Chromium user profile directories (Chrome, Edge, Brave)
+// to automatically discover unpacked extension IDs matching TabWrangler.
 func discoverInstalledExtensionIDs(localAppData string) []string {
 	var ids []string
 	searchRoots := []string{

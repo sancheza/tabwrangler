@@ -18,8 +18,9 @@ import (
 	"github.com/sancheza/tabwrangler/core/types"
 )
 
-const Version = "1.0.0"
+const Version = "1.0.1"
 
+// printUsage renders formatted, colorized CLI usage instructions, examples, and keyboard shortcuts to stdout.
 func printUsage() {
 	useColor := os.Getenv("NO_COLOR") == ""
 
@@ -122,6 +123,8 @@ func printUsage() {
 	fmt.Print(b.String())
 }
 
+// main parses command-line flags and subcommands, initializes the browser collector and IPC bridge,
+// and starts the interactive Bubble Tea terminal user interface.
 func main() {
 	// Custom flag set to strictly support -v/--version and -h/--help per Dev ADR 0005
 	var (

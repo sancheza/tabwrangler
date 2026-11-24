@@ -54,6 +54,7 @@ func NewServerWithPath(sockPath string) *Server {
 	}
 }
 
+// isTCPAddr tests if the specified target string represents a loopback TCP address rather than a filesystem socket path.
 func isTCPAddr(addr string) bool {
 	return strings.HasPrefix(addr, "127.0.0.1:") || strings.HasPrefix(addr, "localhost:") || strings.HasPrefix(addr, "0.0.0.0:") || strings.HasPrefix(addr, ":")
 }
