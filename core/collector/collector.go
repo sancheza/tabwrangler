@@ -11,6 +11,10 @@ import (
 	"github.com/sancheza/tabwrangler/core/types"
 )
 
+// Debug receives diagnostic messages. The default discards them; the program points it at its log.
+// Messages never contain tab titles or URLs.
+var Debug = func(format string, args ...any) {}
+
 // BrowserAdapter defines the contract required to interact with a specific browser.
 type BrowserAdapter interface {
 	Browser() types.BrowserType
@@ -80,6 +84,7 @@ func (c *Collector) FetchAll(ctx context.Context, timeout time.Duration) ([]type
 
 	for bType, adapter := range adapters {
 		if !adapter.IsAvailable() {
+			Debug("fetch: %s not available", bType)
 			resMu.Lock()
 			if ext, ok := adapter.(interface{ ServerError() error }); ok && ext.ServerError() != nil {
 				adapterErr[bType] = fmt.Errorf("bridge socket error: %w", ext.ServerError())
@@ -97,7 +102,9 @@ func (c *Collector) FetchAll(ctx context.Context, timeout time.Duration) ([]type
 			fetchCtx, cancel := context.WithTimeout(ctx, timeout)
 			defer cancel()
 
+			began := time.Now()
 			tabs, err := a.ListTabs(fetchCtx)
+			Debug("fetch: %s returned %d tabs in %s, error=%v", bt, len(tabs), time.Since(began).Round(time.Millisecond), err)
 			resMu.Lock()
 			defer resMu.Unlock()
 

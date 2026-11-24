@@ -75,12 +75,19 @@ func RunNativeMessagingBridge() error {
 	var conn net.Conn
 	var err error
 	var token string
+	attempt := 0
 	for {
+		attempt++
+		began := time.Now()
 		token, err = ReadToken(sockPath)
 		if err == nil {
 			conn, err = net.Dial(network, sockPath)
 		}
+		if err != nil && (attempt <= 5 || attempt%20 == 0) {
+			Log("Bridge: connect attempt %d failed after %s: %v", attempt, time.Since(began).Round(time.Millisecond), err)
+		}
 		if err == nil {
+			Log("Bridge: connect attempt %d succeeded after %s", attempt, time.Since(began).Round(time.Millisecond))
 			Log("Bridge connected to local IPC server at %s", sockPath)
 			break
 		}
@@ -155,6 +162,7 @@ func withToken(payload []byte, token string) []byte {
 	if err := json.Unmarshal(payload, &msg); err != nil || msg["action"] != ActionRegister {
 		return payload
 	}
+	Log("Bridge: adding the token to the register message")
 	msg["token"] = token
 	out, err := json.Marshal(msg)
 	if err != nil {

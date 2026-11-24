@@ -158,6 +158,7 @@ func doTick() tea.Cmd {
 
 // Init triggers initial on-demand tab snapshot.
 func (m Model) Init() tea.Cmd {
+	bridge.Log("ui: Init, first refresh")
 	return tea.Batch(
 		m.triggerRefresh(),
 		doTick(),

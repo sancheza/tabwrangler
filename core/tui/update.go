@@ -4,6 +4,7 @@ package tui
 import (
 	"context"
 	"fmt"
+	"github.com/sancheza/tabwrangler/core/bridge"
 	"time"
 
 	tea "charm.land/bubbletea/v2"
@@ -14,6 +15,9 @@ import (
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
+		if !m.ready {
+			bridge.Log("ui: first window size %dx%d", msg.Width, msg.Height)
+		}
 		m.width = msg.Width
 		m.height = msg.Height
 		m.ready = true
@@ -23,8 +27,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case RefreshDoneMsg:
 		if msg.Seq != 0 && msg.Seq < m.appliedSeq {
 			// A newer refresh already finished; this one started earlier and would replace fresher data.
+			bridge.Log("ui: refresh #%d ignored (newer result #%d already shown)", msg.Seq, m.appliedSeq)
 			return m, nil
 		}
+		bridge.Log("ui: refresh #%d applied: %d tabs", msg.Seq, len(msg.Tabs))
 		if msg.Seq != 0 {
 			m.appliedSeq = msg.Seq
 		}
@@ -51,9 +57,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case TriggerRefreshMsg:
+		bridge.Log("ui: refresh requested by a browser registering")
 		return m, m.triggerRefresh()
 
 	case TickMsg:
+		bridge.Log("ui: timer refresh")
 		return m, tea.Batch(m.triggerRefresh(), doTick())
 
 	case tea.KeyPressMsg:
@@ -265,6 +273,7 @@ func (m Model) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		}
 
 	case "r":
+		bridge.Log("ui: r pressed")
 		m.toast = "Refreshing tabs..."
 		m.toastIsWarning = false
 		return m, m.triggerRefresh()

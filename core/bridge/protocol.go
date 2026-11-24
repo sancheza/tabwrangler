@@ -22,16 +22,16 @@ const (
 
 // Request encapsulates a command dispatched to the companion extension or bridge server.
 type Request struct {
-	ID        string            `json:"id"`
-	Action    string            `json:"action"`
-	Browser   types.BrowserType `json:"browser,omitempty"`
-	WindowID  int               `json:"window_id,omitempty"`
-	TabID     int               `json:"tab_id,omitempty"`
-	TabIDs    []int             `json:"tab_ids,omitempty"`
-	URLs      []string          `json:"urls,omitempty"`
-	URL       string            `json:"url,omitempty"`
-	Params    map[string]any    `json:"params,omitempty"`
-	Token     string            `json:"token,omitempty"`
+	ID       string            `json:"id"`
+	Action   string            `json:"action"`
+	Browser  types.BrowserType `json:"browser,omitempty"`
+	WindowID int               `json:"window_id,omitempty"`
+	TabID    int               `json:"tab_id,omitempty"`
+	TabIDs   []int             `json:"tab_ids,omitempty"`
+	URLs     []string          `json:"urls,omitempty"`
+	URL      string            `json:"url,omitempty"`
+	Params   map[string]any    `json:"params,omitempty"`
+	Token    string            `json:"token,omitempty"`
 }
 
 // Response encapsulates the result from a bridge RPC command.

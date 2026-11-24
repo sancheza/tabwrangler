@@ -191,6 +191,9 @@ func (s *Server) handleConn(conn net.Conn) {
 	s.connections[browser] = conn
 	cb := s.onRegister
 	s.mu.Unlock()
+	if cb == nil {
+		Log("Server.handleConn: %s registered but no register callback is set yet", browser)
+	}
 
 	if cb != nil {
 		go cb(browser)
@@ -278,22 +281,28 @@ func (s *Server) SendRequest(ctx context.Context, b types.BrowserType, req Reque
 	s.pending[reqID] = respChan
 	s.pendingMu.Unlock()
 
+	sent := time.Now()
+	Log("SendRequest %s %s: sending", reqID, req.Action)
 	if _, err := conn.Write(data); err != nil {
 		s.pendingMu.Lock()
 		delete(s.pending, reqID)
 		s.pendingMu.Unlock()
+		Log("SendRequest %s: write failed: %v", reqID, err)
 		return nil, fmt.Errorf("failed writing to bridge socket: %w", err)
 	}
 
 	select {
 	case <-ctx.Done():
+		Log("SendRequest %s: cancelled after %s: %v", reqID, time.Since(sent).Round(time.Millisecond), ctx.Err())
 		s.pendingMu.Lock()
 		delete(s.pending, reqID)
 		s.pendingMu.Unlock()
 		return nil, ctx.Err()
 	case resp := <-respChan:
+		Log("SendRequest %s: response after %s, success=%v", reqID, time.Since(sent).Round(time.Millisecond), resp.Success)
 		return resp, nil
 	case <-time.After(3 * time.Second):
+		Log("SendRequest %s: timed out after 3s waiting for the browser", reqID)
 		s.pendingMu.Lock()
 		delete(s.pending, reqID)
 		s.pendingMu.Unlock()

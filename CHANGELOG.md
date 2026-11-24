@@ -2,6 +2,12 @@
 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follow [Semantic Versioning](https://semver.org/).
 
+## 1.0.15 - 2026-11-24
+
+### Changed
+
+- The diagnostic log records the startup path: the bridge server, each browser registering, each refresh request and result (tab counts and timing), and each request to the browser extension. It never records tab titles or URLs.
+
 ## 1.0.14 - 2026-11-24
 
 ### Fixed

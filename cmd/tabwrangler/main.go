@@ -130,6 +130,7 @@ func printUsage() {
 func main() {
 	bridge.Log("TabWrangler process started: args=%v", os.Args)
 	browser.Debug = bridge.Log
+	collector.Debug = bridge.Log
 	// Custom flag set to strictly support -v/--version and -h/--help per standard command-line conventions (-h/--help, -v/--version)
 	var (
 		versionFlagShort bool
@@ -247,9 +248,13 @@ func main() {
 
 	if bridgeServer != nil {
 		bridgeServer.SetOnRegister(func(b types.BrowserType) {
+			bridge.Log("startup: %s registered; asking the UI to refresh", b)
 			p.Send(tui.TriggerRefreshMsg{})
+			bridge.Log("startup: refresh request for %s reached the UI loop", b)
 		})
+		bridge.Log("startup: bridge server listening, register callback set")
 	}
+	bridge.Log("startup: starting UI")
 
 	if _, err := p.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "Runtime error: %v\n", err)
