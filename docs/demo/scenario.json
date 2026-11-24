@@ -12,34 +12,34 @@
   },
   "phonetics": {},
   "intro_card": {
-    "tag": "TOOL WALKTHROUGH",
-    "title": "TabWrangler",
-    "subtitle": "Cross-Browser Tab Management TUI",
-    "section_title": "WHAT YOU WILL SEE",
-    "items": [
-      {
-        "name": "Unified table",
-        "desc": "Inspect Chrome, Firefox, and Safari tabs together"
-      },
-      {
-        "name": "Search & sorting",
-        "desc": "Instant filtering and column toggles"
-      },
-      {
-        "name": "Lifecycle actions",
-        "desc": "Hibernate, close, and undo mutations"
-      }
-    ]
+    "eyebrow": "TabWrangler",
+    "headline": "Every browser.\nOne terminal.",
+    "subhead": "See, sort, hibernate, and close tabs across Chrome, Firefox, and Safari.",
+    "hero": "auto"
   },
   "outro_card": {
-    "title": "TabWrangler",
-    "subtitle": "Terminal Tab Management",
-    "bullets": [
-      "Unified tab visibility across Chrome, Firefox, and Safari",
-      "Fast keyboard filtering, sorting, and navigation",
-      "Hibernate idle tabs to save RAM, with full undo support"
+    "eyebrow": "TabWrangler",
+    "headline": "Take back your\nsystem’s performance.",
+    "subhead": "See, sort, hibernate, and close tabs across Chrome, Firefox, and Safari.",
+    "tiles": [
+      {
+        "icon": "table",
+        "title": "One unified table",
+        "desc": "Three browsers, side by side."
+      },
+      {
+        "icon": "search",
+        "title": "Find it fast",
+        "desc": "Search and sort from the keyboard."
+      },
+      {
+        "icon": "undo",
+        "title": "Hibernate. Close. Undo.",
+        "desc": "Free memory without losing a tab."
+      }
     ],
-    "repo": "github.com/sancheza/tabwrangler"
+    "cta": "github.com/sancheza/tabwrangler",
+    "footnote": "macOS, Windows, and Linux  ·  Free for noncommercial use"
   },
   "scenes": [
     {
@@ -48,108 +48,163 @@
     },
     {
       "type": "tui",
-      "command": "/tmp/tabwrangler-demo-bin --mock",
+      "command": "./tabwrangler --mock",
       "steps": [
         {
           "wait": 1.0,
           "say": "The main table shows open tabs across all browsers with domain, title, memory, and status.",
-          "expect": ["[0] All", "CH", "FF", "SF", "github.com"]
+          "expect": [
+            "[0] All",
+            "CH",
+            "FF",
+            "SF",
+            "github.com"
+          ]
         },
         {
           "press": "1",
           "wait": 1.0,
           "say": "Pressing one narrows the scope to Google Chrome.",
-          "expect": ["[1] Chrome", "github.com", "console.cloud.google.com"]
+          "expect": [
+            "[1] Chrome",
+            "github.com",
+            "console.cloud.google.com"
+          ]
         },
         {
           "press": "2",
           "wait": 1.0,
           "say": "Pressing two isolates Firefox tabs.",
-          "expect": ["[2] Firefox", "developer.mozilla.o", "news.ycombinator.com"]
+          "expect": [
+            "[2] Firefox",
+            "developer.mozilla.o",
+            "news.ycombinator.com"
+          ]
         },
         {
           "press": "3",
           "wait": 1.0,
           "say": "Pressing three switches to Safari tabs.",
-          "expect": ["[3] Safari", "developer.apple.com"]
+          "expect": [
+            "[3] Safari",
+            "developer.apple.com"
+          ]
         },
         {
           "press": "0",
           "wait": 1.0,
           "say": "Pressing zero returns to the combined view.",
-          "expect": ["[0] All", "github.com", "news.ycombinator.com", "developer.apple.com"]
+          "expect": [
+            "[0] All",
+            "github.com",
+            "news.ycombinator.com",
+            "developer.apple.com"
+          ]
         },
         {
           "press": "/",
           "wait": 0.8,
           "say": "Pressing slash activates live search across titles, URLs, and domains.",
-          "expect": ["/"]
+          "expect": [
+            "/"
+          ]
         },
         {
           "type": "doc",
           "wait": 1.0,
           "say": "Typing doc filters the table down to matching documentation tabs.",
-          "expect": ["MDN Web Docs", "developer.apple.com"]
+          "expect": [
+            "MDN Web Docs",
+            "developer.apple.com"
+          ]
         },
         {
           "press": "Esc",
           "wait": 1.0,
           "say": "Pressing escape clears the search query.",
-          "expect": ["Filter: '/' to search", "github.com"]
+          "expect": [
+            "Filter: '/' to search",
+            "github.com"
+          ]
         },
         {
           "press": "s",
           "wait": 1.0,
           "say": "Pressing s toggles the sort order.",
-          "expect": ["[Domain ▼]"]
+          "expect": [
+            "[Domain ▼]"
+          ]
         },
         {
           "press": "?",
           "wait": 1.2,
           "say": "Pressing question mark opens the help modal with keyboard shortcuts and core concepts.",
-          "expect": ["Help & Keyboard Shortcuts", "Core Concepts:", "Hibernate (h/d)", "Close (c)", "Undo (u)"]
+          "expect": [
+            "Help & Keyboard Shortcuts",
+            "Core Concepts:",
+            "Hibernate (h/d)",
+            "Close (c)",
+            "Undo (u)"
+          ]
         },
         {
           "press": "Esc",
           "wait": 1.0,
           "say": "Pressing escape dismisses the help modal.",
-          "expect": ["Filter: '/' to search", "[Domain ▼]"]
+          "expect": [
+            "Filter: '/' to search",
+            "[Domain ▼]"
+          ]
         },
         {
           "press": "h",
           "wait": 1.2,
           "say": "Pressing h hibernates the tab to free memory while keeping it open.",
-          "expect": ["news.ycombinator.com", "Hibernated"]
+          "expect": [
+            "news.ycombinator.com",
+            "Hibernated"
+          ]
         },
         {
           "press": "u",
           "wait": 1.2,
           "say": "Pressing u wakes the hibernated tab back into memory.",
-          "expect": ["news.ycombinator.com", "Idle"]
+          "expect": [
+            "news.ycombinator.com",
+            "Idle"
+          ]
         },
         {
           "press": "c",
           "wait": 1.2,
           "say": "Pressing c closes the selected tab and removes it.",
-          "expect": ["[0] All (8", "go.dev"]
+          "expect": [
+            "[0] All (8",
+            "go.dev"
+          ]
         },
         {
           "press": "u",
           "wait": 1.2,
           "say": "Pressing u restores the closed tab.",
-          "expect": ["[0] All (9", "news.ycombinator.com"]
+          "expect": [
+            "[0] All (9",
+            "news.ycombinator.com"
+          ]
         },
         {
           "press": "q",
           "wait": 0.5,
           "say": "Pressing q quits TabWrangler and exits to the terminal.",
-          "expect": ["[Domain ▼]"]
+          "expect": [
+            "[Domain ▼]"
+          ]
         }
       ]
     },
     {
       "type": "outro",
-      "narration": "TabWrangler provides tab visibility and resource control directly in the terminal. The project repository is shown on screen."
+      "narration": "Take back your system's performance. TabWrangler is free for noncommercial use, and the project is on GitHub."
     }
   ]
 }
