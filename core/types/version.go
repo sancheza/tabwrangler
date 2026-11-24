@@ -2,4 +2,4 @@
 package types
 
 // Version is the current semantic version of TabWrangler.
-const Version = "1.0.13"
+const Version = "1.0.14"
