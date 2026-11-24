@@ -1,4 +1,4 @@
-//go:build !darwin
+//go:build !darwin && !windows
 
 // Package browser provides cross-platform window activation and host automation utilities.
 package browser

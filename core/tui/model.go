@@ -110,8 +110,8 @@ func NewModel(c *collector.Collector, initialBrowser types.BrowserType, dryRun b
 		filterInput:     ti,
 		showSpecial:     false,
 		showFullURL:     false,
-		sortCol:         SortRAM,
-		sortDesc:        true,
+		sortCol:         SortDomain,
+		sortDesc:        false,
 		cursor:          0,
 		viewportOffset:  0,
 		allowedBrowsers: []types.BrowserType{

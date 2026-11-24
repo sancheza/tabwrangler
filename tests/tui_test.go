@@ -52,16 +52,16 @@ func TestTUIModelFilteringAndSorting(t *testing.T) {
 	updated, _ := m.Update(msg)
 	model := updated.(tui.Model)
 
-	// Default: special tabs hidden
+	// Default: special tabs hidden, sorted by Domain asc (A-Z)
 	model.FilterAndSortTabs()
 	targets := model.SelectedOrHighlightedTabs()
 	if len(targets) != 1 {
 		t.Fatalf("Expected 1 highlighted tab, got %d", len(targets))
 	}
 
-	// Beta Tab has 800MB RAM, Alpha Tab has 200MB. SortRAM descending puts Beta first
-	if targets[0].Title != "Beta Tab" {
-		t.Fatalf("Expected 'Beta Tab' as top row sorted by RAM desc, got %s", targets[0].Title)
+	// alpha.com comes before beta.com when sorted by Domain asc
+	if targets[0].Title != "Alpha Tab" {
+		t.Fatalf("Expected 'Alpha Tab' as top row sorted by Domain asc, got %s", targets[0].Title)
 	}
 
 	// Aggregate stats check
@@ -71,6 +71,15 @@ func TestTUIModelFilteringAndSorting(t *testing.T) {
 	}
 	if ram != 1000*1024*1024 {
 		t.Fatalf("Expected 1000MB total RAM, got %d", ram)
+	}
+
+	// Test sorting by RAM desc
+	model.SetSortColumn(tui.SortRAM)
+	model.SetSortDescending(true)
+	model.FilterAndSortTabs()
+	ramTargets := model.SelectedOrHighlightedTabs()
+	if ramTargets[0].Title != "Beta Tab" {
+		t.Fatalf("Expected 'Beta Tab' as top row sorted by RAM desc, got %s", ramTargets[0].Title)
 	}
 
 	// Test StepSort stepping behavior

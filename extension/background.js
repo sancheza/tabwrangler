@@ -88,9 +88,13 @@ async function handleRequest(req) {
 
       case "focus_tab": {
         let focused = false;
+        let targetWindowId = req.window_id || null;
         if (req.tab_id) {
           try {
-            await api.tabs.update(req.tab_id, { active: true });
+            const tab = await api.tabs.update(req.tab_id, { active: true });
+            if (tab && tab.windowId) {
+              targetWindowId = tab.windowId;
+            }
             focused = true;
           } catch (e) {}
         }
@@ -98,17 +102,22 @@ async function handleRequest(req) {
           try {
             const matches = await api.tabs.query({ url: req.url });
             if (matches && matches.length > 0) {
-              await api.tabs.update(matches[0].id, { active: true });
-              if (matches[0].windowId) {
-                await api.windows.update(matches[0].windowId, { focused: true });
+              const tab = await api.tabs.update(matches[0].id, { active: true });
+              if (tab && tab.windowId) {
+                targetWindowId = tab.windowId;
+              } else if (matches[0].windowId) {
+                targetWindowId = matches[0].windowId;
               }
               focused = true;
             }
           } catch (e) {}
         }
-        if (req.window_id) {
+        if (targetWindowId) {
           try {
-            await api.windows.update(req.window_id, { focused: true });
+            await api.windows.update(targetWindowId, { focused: true });
+          } catch (e) {}
+          try {
+            await api.windows.update(targetWindowId, { drawAttention: true });
           } catch (e) {}
         }
         sendResponse({
