@@ -146,9 +146,10 @@ Objective: Install the unpacked Manifest V3 companion extension in your browser.
 5. Confirm that **TabWrangler Companion** appears in your extension list with no error badges.
 
 #### Mozilla Firefox:
-1. Open Firefox and navigate to `about:debugging#/runtime/this-firefox`.
-2. Click **Load Temporary Add-on...**.
-3. Select `extension/manifest.json` from the extracted TabWrangler folder.
+1. Open Firefox and navigate to `about:debugging#/runtime/this-firefox` in your address bar.
+2. Click the **Load Temporary Add-on...** button in the top right.
+3. Select `extension/manifest.json` (or paste the path from your clipboard).
+> **Note:** Do **not** use `about:addons` ➔ *"Install Add-on From File..."*. Standard Firefox requires Mozilla-signed `.xpi` archives for that menu and will report a *"corrupt"* error if given an unsigned local manifest file. Unsigned extensions must be loaded via `about:debugging#/runtime/this-firefox`.
 
 #### Apple Safari:
 No extension installation is needed. Safari tabs are read and controlled directly via macOS AppleScript automation. If prompted on first launch, click **OK** in macOS System Settings to grant automation permission.

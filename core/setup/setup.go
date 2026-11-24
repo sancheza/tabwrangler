@@ -236,7 +236,19 @@ func Run(binaryPath string, openBrowser bool, customChromeID string) error {
 		}
 	}
 
-	fmt.Printf("\033[32m[OK]\033[0m Setup complete. Load the extension from the 'extension/' directory into your browsers.\n")
+	fmt.Printf("\033[32m[OK]\033[0m Setup complete!\n\n")
+	fmt.Printf("Next step: Load the companion extension into your browser:\n\n")
+	fmt.Printf("  • Chrome / Edge / Brave:\n")
+	fmt.Printf("      1. Navigate to chrome://extensions\n")
+	fmt.Printf("      2. Enable 'Developer mode' (top right)\n")
+	fmt.Printf("      3. Click 'Load unpacked' and select the extension/ directory\n\n")
+	fmt.Printf("  • Firefox:\n")
+	fmt.Printf("      1. Navigate to about:debugging#/runtime/this-firefox\n")
+	fmt.Printf("      2. Click 'Load Temporary Add-on...'\n")
+	fmt.Printf("      3. Select extension/manifest.json (Do NOT use 'Install Add-on From File' in about:addons)\n\n")
+	fmt.Printf("  • Safari (macOS):\n")
+	fmt.Printf("      Automated natively out-of-the-box. No extension required.\n\n")
+	fmt.Printf("Then run 'tabwrangler' to launch.\n")
 	return nil
 }
 
