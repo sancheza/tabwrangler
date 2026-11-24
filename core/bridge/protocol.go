@@ -46,17 +46,17 @@ type Response struct {
 
 // RawExtensionTab mirrors the tab representation emitted by the MV3 WebExtension.
 type RawExtensionTab struct {
-	ID           int    `json:"id"`
-	WindowID     int    `json:"windowId"`
-	Title        string `json:"title"`
-	URL          string `json:"url"`
-	FaviconURL   string `json:"favIconUrl,omitempty"`
-	Active       bool   `json:"active"`
-	Pinned       bool   `json:"pinned"`
-	Discarded    bool   `json:"discarded"`
-	LastAccessed int64  `json:"lastAccessed"`
-	Incognito    bool   `json:"incognito"`
-	Status       string `json:"status,omitempty"`
+	ID           int     `json:"id"`
+	WindowID     int     `json:"windowId"`
+	Title        string  `json:"title"`
+	URL          string  `json:"url"`
+	FaviconURL   string  `json:"favIconUrl,omitempty"`
+	Active       bool    `json:"active"`
+	Pinned       bool    `json:"pinned"`
+	Discarded    bool    `json:"discarded"`
+	LastAccessed float64 `json:"lastAccessed"`
+	Incognito    bool    `json:"incognito"`
+	Status       string  `json:"status,omitempty"`
 }
 
 // MarshalJSON helper for Request.

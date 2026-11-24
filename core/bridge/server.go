@@ -182,6 +182,7 @@ func (s *Server) handleConn(conn net.Conn) {
 
 		var resp Response
 		if err := json.Unmarshal(respLine, &resp); err != nil {
+			Log("Server.handleConn failed unmarshaling bridge response (len=%d): %v", len(respLine), err)
 			continue
 		}
 

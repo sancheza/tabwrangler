@@ -72,7 +72,7 @@ async function handleRequest(req) {
           active: !!t.active,
           pinned: !!t.pinned,
           discarded: !!t.discarded,
-          lastAccessed: t.lastAccessed || 0,
+          lastAccessed: Math.round(t.lastAccessed || 0),
           incognito: !!t.incognito,
           status: t.status || "complete"
         }));

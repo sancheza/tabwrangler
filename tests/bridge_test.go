@@ -153,3 +153,20 @@ func TestBridgeServerRegistrationAndDispatch(t *testing.T) {
 		t.Fatalf("FocusTab failed: %v", err)
 	}
 }
+
+func TestUnmarshalFloatingLastAccessed(t *testing.T) {
+	rawJSON := `{"id":"req-1","action":"list_tabs","success":true,"tabs":[{"id":1664087683,"windowId":1664087682,"title":"OneTab","url":"https://example.com","active":false,"pinned":true,"discarded":false,"lastAccessed":1793751482852.47,"incognito":false,"status":"complete"}]}`
+
+	var resp bridge.Response
+	if err := json.Unmarshal([]byte(rawJSON), &resp); err != nil {
+		t.Fatalf("failed unmarshaling response with floating point lastAccessed: %v", err)
+	}
+
+	if len(resp.Tabs) != 1 {
+		t.Fatalf("expected 1 tab, got %d", len(resp.Tabs))
+	}
+
+	if resp.Tabs[0].LastAccessed != 1793751482852.47 {
+		t.Errorf("expected lastAccessed 1793751482852.47, got %v", resp.Tabs[0].LastAccessed)
+	}
+}
