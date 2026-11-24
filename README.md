@@ -21,12 +21,22 @@ TabWrangler is a fast, keyboard-driven Terminal User Interface (TUI) for macOS, 
 
 ## 2. Requirements
 
-- **Supported Operating Systems:** macOS (12+), Windows 10/11 (64-bit), Linux (x86_64, arm64)
-- **Supported Browsers:**
-  - **Google Chrome / Microsoft Edge / Brave:** Supported via companion WebExtension.
-  - **Mozilla Firefox:** Supported via companion WebExtension (or session fallback).
-  - **Apple Safari:** Supported out of the box on macOS via native automation (zero extensions required).
-- **Go (Optional):** Go 1.24+ (only required if building from source).
+### Supported Operating Systems
+- **Windows:** Windows 10 (build 1809+) or Windows 11 (64-bit only).
+- **macOS:** macOS 12 Monterey or later (Apple Silicon or Intel 64-bit).
+- **Linux:** Modern Linux distributions with glibc (x86_64, arm64).
+
+> **Compatibility Notice:**
+> - **Unsupported:** Windows 7, Windows 8, Windows 8.1, and all 32-bit (x86) operating systems are not supported.
+> - Attempting to launch TabWrangler on Windows 7 or 32-bit Windows triggers `not a valid win32 application` due to modern 64-bit Go runtime dependencies and Windows 10+ Virtual Terminal (ConPTY) requirements.
+
+### Supported Browsers
+- **Google Chrome / Microsoft Edge / Brave:** Supported via companion WebExtension.
+- **Mozilla Firefox:** Supported via companion WebExtension (or session fallback).
+- **Apple Safari:** Supported out of the box on macOS via native automation (zero extensions required).
+
+### Development Toolchain (Optional)
+- **Go:** Go 1.24+ (only required if building from source).
 
 ---
 
