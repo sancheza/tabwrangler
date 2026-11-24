@@ -315,7 +315,7 @@ func (m Model) renderKeybindBar() string {
 		return StyleKeybindBar.Width(m.width).Render(bar)
 	}
 
-	shortcuts := "Enter/f: Focus  |  h/d: Hibernate (H: force)  |  c: Close  |  u: Undo  |  Space: Select  |  a/A: All/None  |  s: Sort  |  /: Filter  |  r: Refresh  |  ?: Help  |  q: Quit"
+	shortcuts := "Enter/f: Focus  |  h: Hibernate  |  c: Close  |  u: Undo  |  Space: Select  |  a/A: All/None  |  s: Sort  |  /: Filter  |  r: Refresh  |  ?: Help  |  q: Quit"
 	return StyleKeybindBar.Width(m.width).Render(shortcuts)
 }
 
@@ -330,7 +330,7 @@ func (m Model) renderHelpModal() string {
 	title := lipgloss.NewStyle().Bold(true).Foreground(ColorPrimary).Render(fmt.Sprintf("TabWrangler v%s — Help & Keyboard Shortcuts", types.Version))
 	table := `
 Core Concepts:
-  • Hibernate (h/d) : Puts background tabs to sleep using browser memory saver engine.
+  • Hibernate (h)   : Puts tabs to sleep using the browser memory saver engine (a tab showing in its window is hibernated after the window switches to another tab).
                       The tab remains open in your browser tab strip with its title, URL,
                       and favicon intact, but frees renderer RAM and CPU. Clicking or
                       switching to the tab in your browser reloads it instantly from cache.
@@ -355,8 +355,7 @@ Filtering & View:
 
 Actions:
   Enter or f        Focus tab & raise browser window to front
-  h or d            Hibernate / sleep selected tabs (frees RAM, tab stays in browser)
-  H                 Force hibernate: also tabs showing in their window (switches that window to another tab first)
+  h                 Hibernate / sleep selected tabs (frees RAM, tab stays in browser; a tab showing in its window is hibernated after switching that window to another tab)
   c                 Close selected tabs (confirms if > 3 tabs)
   u                 Undo last close or hibernate action
   r                 Refresh tab snapshot on demand

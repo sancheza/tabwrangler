@@ -33,7 +33,6 @@ type Request struct {
 	Params   map[string]any    `json:"params,omitempty"`
 	Token    string            `json:"token,omitempty"`
 	Version  string            `json:"version,omitempty"` // extension version, sent when registering
-	Force    bool              `json:"force,omitempty"`   // discard_tabs: also discard the tab showing in its window
 }
 
 // Response encapsulates the result from a bridge RPC command.

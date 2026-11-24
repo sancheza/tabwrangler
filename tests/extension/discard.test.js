@@ -1,5 +1,5 @@
-// Tests the force-hibernate logic in extension/background.js with a stubbed browser API.
-// Run: node tests/extension/force_discard.test.js
+// Tests how extension/background.js hibernates tabs, including the tab showing in its window, with a stubbed browser API.
+// Run: node tests/extension/discard.test.js
 const fs = require("fs");
 const path = require("path");
 const vm = require("vm");
@@ -49,46 +49,40 @@ function run(tabs, request) {
 }
 
 const tab = (id, extra = {}) => ({ id, windowId: 1, active: false, discarded: false, lastAccessed: id, ...extra });
-const discardReq = (ids, force) => ({ id: "r", action: "discard_tabs", tab_ids: ids, force });
+const discardReq = (ids) => ({ id: "r", action: "discard_tabs", tab_ids: ids });
 
 (async () => {
-  // Without force, the active tab is skipped and nothing is switched.
-  let r = await run([tab(1, { active: true }), tab(2)], discardReq([1], false));
-  same(r.calls, []);
-  assert.strictEqual(r.response.discarded, 0);
-  assert.strictEqual(r.response.skipped, 1);
-
-  // Force: switch to the most recently used loaded tab, then discard the active one.
-  r = await run([tab(1, { active: true }), tab(2, { lastAccessed: 50 }), tab(3, { lastAccessed: 90 })], discardReq([1], true));
+  // Switch to the most recently used loaded tab, then discard the active one.
+  let r = await run([tab(1, { active: true }), tab(2, { lastAccessed: 50 }), tab(3, { lastAccessed: 90 })], discardReq([1]));
   same(r.calls, [["update", 3, { active: true }], ["discard", 1]]);
   assert.strictEqual(r.response.discarded, 1);
 
-  // Force never switches to an already discarded tab (that would reload it).
-  r = await run([tab(1, { active: true }), tab(2, { discarded: true, lastAccessed: 99 }), tab(3, { lastAccessed: 10 })], discardReq([1], true));
+  // Never switch to an already discarded tab (that would reload it).
+  r = await run([tab(1, { active: true }), tab(2, { discarded: true, lastAccessed: 99 }), tab(3, { lastAccessed: 10 })], discardReq([1]));
   same(r.calls, [["update", 3, { active: true }], ["discard", 1]]);
 
-  // Force never switches to a tab that is also being discarded.
-  r = await run([tab(1, { active: true }), tab(2, { lastAccessed: 99 }), tab(3, { lastAccessed: 10 })], discardReq([1, 2], true));
+  // Never switch to a tab that is also being discarded.
+  r = await run([tab(1, { active: true }), tab(2, { lastAccessed: 99 }), tab(3, { lastAccessed: 10 })], discardReq([1, 2]));
   same(r.calls, [["update", 3, { active: true }], ["discard", 1], ["discard", 2]]);
   assert.strictEqual(r.response.discarded, 2);
 
   // No loaded tab to switch to: skip, and do not touch the window.
-  r = await run([tab(1, { active: true }), tab(2, { discarded: true })], discardReq([1], true));
+  r = await run([tab(1, { active: true }), tab(2, { discarded: true })], discardReq([1]));
   same(r.calls, []);
   assert.strictEqual(r.response.skipped, 1);
 
   // A window's only tab cannot be hibernated.
-  r = await run([tab(1, { active: true })], discardReq([1], true));
+  r = await run([tab(1, { active: true })], discardReq([1]));
   same(r.calls, []);
   assert.strictEqual(r.response.skipped, 1);
 
   // Only the window of the active tab is searched for a replacement.
-  r = await run([tab(1, { active: true }), tab(2, { windowId: 2, lastAccessed: 99 }), tab(3, { lastAccessed: 5 })], discardReq([1], true));
+  r = await run([tab(1, { active: true }), tab(2, { windowId: 2, lastAccessed: 99 }), tab(3, { lastAccessed: 5 })], discardReq([1]));
   same(r.calls, [["update", 3, { active: true }], ["discard", 1]]);
 
-  // A background tab is discarded without switching anything, with or without force.
-  r = await run([tab(1, { active: true }), tab(2)], discardReq([2], true));
+  // A background tab is discarded without switching anything.
+  r = await run([tab(1, { active: true }), tab(2)], discardReq([2]));
   same(r.calls, [["discard", 2]]);
 
-  console.log("force_discard: all checks passed");
+  console.log("discard: all checks passed");
 })().catch((e) => { console.error(e); process.exit(1); });

@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/sancheza/tabwrangler/core/bridge"
-	"github.com/sancheza/tabwrangler/core/collector"
 	"github.com/sancheza/tabwrangler/core/types"
 )
 
@@ -402,7 +401,7 @@ func fakeExtension(t *testing.T, sock string, browser string) (requests chan bri
 	return requests, func() { conn.Close() }
 }
 
-func TestForceDiscardIncludesActiveTabs(t *testing.T) {
+func TestDiscardIncludesActiveTabs(t *testing.T) {
 	testSock := filepath.Join(os.TempDir(), fmt.Sprintf("tabwrangler-test-%d.sock", time.Now().UnixNano()))
 	server := bridge.NewServerWithPath(testSock)
 	ctx, cancel := context.WithCancel(context.Background())
@@ -420,34 +419,17 @@ func TestForceDiscardIncludesActiveTabs(t *testing.T) {
 		{TabID: "1", Browser: types.BrowserChrome, IsActive: true, Capabilities: caps},
 		{TabID: "2", Browser: types.BrowserChrome, Capabilities: caps},
 		{TabID: "3", Browser: types.BrowserChrome, IsDiscarded: true, Capabilities: caps},
+		{TabID: "4", Browser: types.BrowserChrome, Capabilities: types.Capabilities{CanDiscard: false}},
 	}
 
-	// Plain hibernate skips the tab showing in its window and the one already hibernated.
+	// The tab showing in its window is sent too (the extension switches the window first).
+	// Tabs that are already hibernated or cannot be discarded are skipped.
 	discarded, skipped, err := adapter.DiscardTabs(ctx, tabs)
-	if err != nil || discarded != 1 || skipped != 2 {
-		t.Fatalf("DiscardTabs = %d discarded, %d skipped, %v; want 1, 2, nil", discarded, skipped, err)
+	if err != nil || discarded != 2 || skipped != 2 {
+		t.Fatalf("DiscardTabs = %d discarded, %d skipped, %v; want 2, 2, nil", discarded, skipped, err)
 	}
 	req := <-requests
-	if req.Force || len(req.TabIDs) != 1 || req.TabIDs[0] != 2 {
-		t.Errorf("plain request = %+v; want tab 2 only, no force", req)
-	}
-
-	// Force hibernate also sends the active tab and asks the extension to switch tabs first.
-	discarded, skipped, err = adapter.ForceDiscardTabs(ctx, tabs)
-	if err != nil || discarded != 2 || skipped != 1 {
-		t.Fatalf("ForceDiscardTabs = %d discarded, %d skipped, %v; want 2, 1, nil", discarded, skipped, err)
-	}
-	req = <-requests
-	if !req.Force || len(req.TabIDs) != 2 || req.TabIDs[0] != 1 || req.TabIDs[1] != 2 {
-		t.Errorf("force request = %+v; want tabs 1 and 2 with force", req)
-	}
-}
-
-func TestCollectorForceDiscardFallsBackForOtherAdapters(t *testing.T) {
-	coll := collector.NewCollector()
-	coll.RegisterAdapter(collector.NewMockAdapter(types.BrowserSafari))
-	tabs := []types.Tab{{TabID: "1", Browser: types.BrowserSafari}}
-	if _, _, err := coll.ForceDiscardTabs(context.Background(), tabs); err != nil {
-		t.Fatalf("ForceDiscardTabs with a plain adapter failed: %v", err)
+	if len(req.TabIDs) != 2 || req.TabIDs[0] != 1 || req.TabIDs[1] != 2 {
+		t.Errorf("request = %+v; want tabs 1 and 2", req)
 	}
 }

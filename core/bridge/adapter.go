@@ -115,7 +115,7 @@ func (a *ExtensionAdapter) listTabsViaBridge(ctx context.Context) ([]types.Tab, 
 			},
 			Capabilities: types.Capabilities{
 				CanFocus:   true,
-				CanDiscard: !raw.Discarded && !raw.Active,
+				CanDiscard: !raw.Discarded,
 				CanClose:   true,
 			},
 		})
@@ -158,16 +158,6 @@ func (a *ExtensionAdapter) FocusTab(ctx context.Context, tab types.Tab) error {
 
 // DiscardTabs instructs the extension to discard memory for the specified tabs.
 func (a *ExtensionAdapter) DiscardTabs(ctx context.Context, tabs []types.Tab) (int, int, error) {
-	return a.discard(ctx, tabs, false)
-}
-
-// ForceDiscardTabs also discards tabs that are showing in their window. The extension first switches
-// that window to another loaded tab, because a browser cannot discard the tab on screen.
-func (a *ExtensionAdapter) ForceDiscardTabs(ctx context.Context, tabs []types.Tab) (int, int, error) {
-	return a.discard(ctx, tabs, true)
-}
-
-func (a *ExtensionAdapter) discard(ctx context.Context, tabs []types.Tab, force bool) (int, int, error) {
 	if a.server == nil || !a.server.IsBrowserConnected(a.browser) {
 		return 0, len(tabs), fmt.Errorf("companion extension not connected for %s", a.browser)
 	}
@@ -175,7 +165,7 @@ func (a *ExtensionAdapter) discard(ctx context.Context, tabs []types.Tab, force 
 	skipped := 0
 
 	for _, t := range tabs {
-		if t.IsDiscarded || (!force && (!t.Capabilities.CanDiscard || t.IsActive)) {
+		if !t.Capabilities.CanDiscard || t.IsDiscarded {
 			skipped++
 			continue
 		}
@@ -194,7 +184,6 @@ func (a *ExtensionAdapter) discard(ctx context.Context, tabs []types.Tab, force 
 	resp, err := a.server.SendRequest(ctx, a.browser, Request{
 		Action: ActionDiscardTabs,
 		TabIDs: tabIDs,
-		Force:  force,
 	})
 	if err != nil {
 		return 0, skipped, err

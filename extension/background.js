@@ -142,20 +142,18 @@ async function handleRequest(req) {
 
         for (const tid of tabIds) {
           try {
-            if (req.force) {
-              // A browser cannot discard the tab showing in its window. Switch that window to the
-              // most recently used loaded tab that is not being discarded, then discard this one.
-              const tab = await api.tabs.get(tid);
-              if (tab.active) {
-                const others = (await api.tabs.query({ windowId: tab.windowId }))
-                  .filter(t => t.id !== tid && !selected.has(t.id) && !t.discarded)
-                  .sort((a, b) => (b.lastAccessed || 0) - (a.lastAccessed || 0));
-                if (others.length === 0) {
-                  skipped++;
-                  continue;
-                }
-                await api.tabs.update(others[0].id, { active: true });
+            // A browser cannot discard the tab showing in its window. Switch that window to the
+            // most recently used loaded tab that is not being discarded, then discard this one.
+            const tab = await api.tabs.get(tid);
+            if (tab.active) {
+              const others = (await api.tabs.query({ windowId: tab.windowId }))
+                .filter(t => t.id !== tid && !selected.has(t.id) && !t.discarded)
+                .sort((a, b) => (b.lastAccessed || 0) - (a.lastAccessed || 0));
+              if (others.length === 0) {
+                skipped++;
+                continue;
               }
+              await api.tabs.update(others[0].id, { active: true });
             }
             // Discarding active tabs or already discarded tabs will throw or fail
             await api.tabs.discard(tid);

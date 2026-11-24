@@ -129,24 +129,8 @@ func (c *Collector) FocusTab(ctx context.Context, tab types.Tab) error {
 	return adapter.FocusTab(ctx, tab)
 }
 
-// ForceDiscarder is implemented by adapters that can also discard the tab showing in its window,
-// by first switching that window to another tab.
-type ForceDiscarder interface {
-	ForceDiscardTabs(ctx context.Context, tabs []types.Tab) (discarded int, skipped int, err error)
-}
-
 // DiscardTabs batches tabs by browser and executes discard operations.
 func (c *Collector) DiscardTabs(ctx context.Context, tabs []types.Tab) (int, int, error) {
-	return c.discardTabs(ctx, tabs, false)
-}
-
-// ForceDiscardTabs is DiscardTabs that also hibernates tabs showing in their window where the
-// browser adapter supports it. Other adapters discard as usual.
-func (c *Collector) ForceDiscardTabs(ctx context.Context, tabs []types.Tab) (int, int, error) {
-	return c.discardTabs(ctx, tabs, true)
-}
-
-func (c *Collector) discardTabs(ctx context.Context, tabs []types.Tab, force bool) (int, int, error) {
 	byBrowser := make(map[types.BrowserType][]types.Tab)
 	for _, t := range tabs {
 		byBrowser[t.Browser] = append(byBrowser[t.Browser], t)
@@ -161,13 +145,7 @@ func (c *Collector) discardTabs(ctx context.Context, tabs []types.Tab, force boo
 			totalSkipped += len(bTabs)
 			continue
 		}
-		var discarded, skipped int
-		var err error
-		if fd, ok := adapter.(ForceDiscarder); ok && force {
-			discarded, skipped, err = fd.ForceDiscardTabs(ctx, bTabs)
-		} else {
-			discarded, skipped, err = adapter.DiscardTabs(ctx, bTabs)
-		}
+		discarded, skipped, err := adapter.DiscardTabs(ctx, bTabs)
 		totalDiscarded += discarded
 		totalSkipped += skipped
 		if err != nil {

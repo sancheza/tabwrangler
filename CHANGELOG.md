@@ -2,6 +2,14 @@
 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follow [Semantic Versioning](https://semver.org/).
 
+## 1.0.20 - 2026-11-24
+
+### Changed
+
+- `h` hibernates tabs that are showing in their browser window. The extension first switches that window to the most recently used loaded tab, then discards the tab. It never switches to a tab that is already hibernated or is itself being hibernated, and it skips a tab when its window has no other loaded tab. The `H` key from 1.0.19 is removed.
+- `d` is retired. Pressing it shows a message that points to `h` and does nothing else.
+- The message after `h` lists why tabs were skipped: already hibernated, not supported (Safari), or the only loaded tab in its window.
+
 ## 1.0.19 - 2026-11-24
 
 ### Added

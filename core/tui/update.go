@@ -254,19 +254,18 @@ func (m Model) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 			return m, m.executeFocusTab(target)
 		}
 
-	case "h", "d":
+	case "h":
 		targets := m.SelectedOrHighlightedTabs()
 		if len(targets) > 0 {
 			m.undoStack = append(m.undoStack, UndoAction{Type: UndoDiscard, Tabs: targets})
-			return m, m.executeDiscardTabs(targets, false)
+			return m, m.executeDiscardTabs(targets)
 		}
 
-	case "H":
-		targets := m.SelectedOrHighlightedTabs()
-		if len(targets) > 0 {
-			m.undoStack = append(m.undoStack, UndoAction{Type: UndoDiscard, Tabs: targets})
-			return m, m.executeDiscardTabs(targets, true)
-		}
+	case "d":
+		// Retired alias for h. It only points to h, so a stray press never acts on tabs.
+		m.toast = "'d' was retired; press 'h' to hibernate"
+		m.toastIsWarning = true
+		return m, tea.Tick(4*time.Second, func(time.Time) tea.Msg { return ClearToastMsg{} })
 
 	case "c":
 		targets := m.SelectedOrHighlightedTabs()
@@ -395,7 +394,7 @@ func (m *Model) executeFocusTab(tab types.Tab) tea.Cmd {
 	}
 }
 
-func (m *Model) executeDiscardTabs(tabs []types.Tab, force bool) tea.Cmd {
+func (m *Model) executeDiscardTabs(tabs []types.Tab) tea.Cmd {
 	if m.dryRun {
 		return func() tea.Msg {
 			return ActionDoneMsg{
@@ -408,13 +407,7 @@ func (m *Model) executeDiscardTabs(tabs []types.Tab, force bool) tea.Cmd {
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		var discarded, skipped int
-		var err error
-		if force {
-			discarded, skipped, err = m.collector.ForceDiscardTabs(ctx, tabs)
-		} else {
-			discarded, skipped, err = m.collector.DiscardTabs(ctx, tabs)
-		}
+		discarded, skipped, err := m.collector.DiscardTabs(ctx, tabs)
 		if err != nil {
 			return ActionDoneMsg{
 				Action:    "discard",
@@ -426,11 +419,7 @@ func (m *Model) executeDiscardTabs(tabs []types.Tab, force bool) tea.Cmd {
 
 		var toast string
 		if skipped > 0 {
-			if force {
-				toast = fmt.Sprintf("Hibernated %d tabs (%d skipped — already hibernated, or the only loaded tab in its window)", discarded, skipped)
-			} else {
-				toast = fmt.Sprintf("Hibernated %d tabs (%d skipped — showing in its window or already hibernated; H hibernates those too)", discarded, skipped)
-			}
+			toast = fmt.Sprintf("Hibernated %d tabs (%d skipped — already hibernated, not supported, or the only loaded tab in its window)", discarded, skipped)
 		} else {
 			toast = fmt.Sprintf("Hibernated %d tabs", discarded)
 		}

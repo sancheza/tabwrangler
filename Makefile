@@ -1,7 +1,7 @@
 .PHONY: all build build-windows package-windows build-all checksums test clean
 
 BINARY_NAME=tabwrangler
-VERSION=1.0.19
+VERSION=1.0.20
 
 all: test build
 

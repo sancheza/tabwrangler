@@ -95,9 +95,17 @@ func TestUndoStackOperations(t *testing.T) {
 		t.Fatalf("expected 'Nothing to undo', got %q", m.toast)
 	}
 
-	// Test 2: Discard highlighted tab (press 'd')
+	// Test 2a: the retired 'd' key only shows a hint and changes nothing
 	dKey := tea.KeyPressMsg(tea.Key{Text: "d", Code: 'd'})
-	updated, cmd := m.Update(dKey)
+	updated, _ = m.Update(dKey)
+	m = updated.(Model)
+	if m.UndoStackLen() != 0 || !strings.Contains(m.toast, "'h'") {
+		t.Fatalf("expected a hint pointing to 'h' and no action, got undo len %d, toast %q", m.UndoStackLen(), m.toast)
+	}
+
+	// Test 2b: Discard highlighted tab (press 'h')
+	hKey := tea.KeyPressMsg(tea.Key{Text: "h", Code: 'h'})
+	updated, cmd := m.Update(hKey)
 	m = updated.(Model)
 	if cmd == nil {
 		t.Fatal("expected non-nil cmd on discard")
@@ -144,7 +152,6 @@ func TestUndoStackOperations(t *testing.T) {
 	}
 
 	// Test 6: Press 'h' to hibernate
-	hKey := tea.KeyPressMsg(tea.Key{Text: "h", Code: 'h'})
 	updated, hCmd := m.Update(hKey)
 	m = updated.(Model)
 	if hCmd == nil {
