@@ -168,6 +168,8 @@ Every key is lowercase; a capital letter does the same thing. The retired keys `
 
 ## 7. Security, Permissions & Packaging
 
+User-facing explanation of components, listeners, permissions, files, and risks: [architecture.md](architecture.md).
+
 1. **Local-Only IPC:**
    * Companion extensions communicate exclusively via browser-managed Native Messaging manifests (`com.tabwrangler.bridge.json`) and a user-scoped Unix domain socket (`/tmp/tabwrangler-$UID.sock` with `0600` permissions on macOS) or a loopback-only TCP port (`127.0.0.1:42823`) on Windows. Each TabWrangler run generates a random token, stored in an owner-only file, that the native messaging host must present when it registers; connections without it are rejected. No ports are open on non-loopback interfaces.
    * The native messaging host (`tabwrangler bridge`) started by the browser stays running when TabWrangler quits and registers again when TabWrangler starts, so a relaunch finds the browser already connected.

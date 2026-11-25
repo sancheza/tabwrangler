@@ -34,7 +34,7 @@ ok  	github.com/sancheza/tabwrangler/tests
 | `core/types/` | Shared data types and version |
 | `extension/` | Manifest V3 companion extension (Chrome, Firefox) |
 | `tests/` | Integration tests |
-| `docs/` | Design specification and architecture decision records |
+| `docs/` | How it works (`architecture.md`), installation, upgrading, CLI reference, design specification, and architecture decision records |
 
 ## 3. Pull Requests
 

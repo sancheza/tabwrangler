@@ -37,4 +37,4 @@ Include:
 | Data at rest | No tab history is stored. The diagnostic log holds timestamps, process IDs, and message sizes, not tab titles or URLs. |
 | Extension permissions | `tabs` and `nativeMessaging` only. |
 
-Details: [README Section 6](README.md#6-privacy--security-architecture).
+Details: [README Section 7](README.md#7-privacy--security-architecture).
