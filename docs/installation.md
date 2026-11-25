@@ -40,8 +40,8 @@ The setup command places the binary into a persistent application directory (`%L
 
 Objective: Install the unpacked Manifest V3 companion extension in your browser.
 
-### Google Chrome / Microsoft Edge / Brave:
-1. Open your browser and navigate to `chrome://extensions` (or `edge://extensions` / `brave://extensions`).
+### Google Chrome:
+1. Open Chrome and navigate to `chrome://extensions`.
 2. Toggle on **Developer mode** in the top right corner.
 3. Click the **Load unpacked** button in the top left header.
 4. Select the `extension/` folder in the file dialog (or paste the path already on your clipboard into the folder selection bar).

@@ -39,7 +39,7 @@ https://github.com/user-attachments/assets/cfb2d2dd-d0b0-43fb-9d08-118fc550cc27
 > - Attempting to launch TabWrangler on Windows 7 or 32-bit Windows triggers `not a valid win32 application` due to modern 64-bit Go runtime dependencies and Windows 10+ Virtual Terminal (ConPTY) requirements.
 
 ### Supported Browsers
-- **Google Chrome / Microsoft Edge / Brave:** Supported via companion WebExtension.
+- **Google Chrome:** Supported via companion WebExtension.
 - **Mozilla Firefox:** Supported via companion WebExtension (or session fallback).
 - **Apple Safari:** Supported out of the box on macOS via native automation (zero extensions required).
 
@@ -112,7 +112,7 @@ Expected output: An executable binary `tabwrangler` (or `tabwrangler.exe` on Win
 
 ### 3.4 Register and Load the Companion Extension
 
-Objective: Connect TabWrangler to Chrome, Edge, Brave, and Firefox. Safari needs no extension.
+Objective: Connect TabWrangler to Chrome and Firefox. Safari needs no extension.
 
 1. Register the native messaging host:
    ```bash
@@ -123,7 +123,7 @@ Objective: Connect TabWrangler to Chrome, Edge, Brave, and Firefox. Safari needs
 
    | Browser | Steps |
    |:--- |:--- |
-   | Chrome / Edge / Brave | Open `chrome://extensions`, enable **Developer mode**, click **Load unpacked**, select `extension/` |
+   | Chrome | Open `chrome://extensions`, enable **Developer mode**, click **Load unpacked**, select `extension/` |
    | Firefox | Open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on...**, select `extension/manifest.json` |
    | Safari (macOS) | No extension. Allow the Automation prompt on first launch. |
 

@@ -73,7 +73,7 @@ The extension has no `host_permissions`, no content scripts, no `storage`, no `w
 
 | Browser | Rule in the manifest |
 |:--- |:--- |
-| Chrome, Edge, Brave | `allowed_origins` lists `chrome-extension://<id>/`. The default ID comes from the `key` in `extension/manifest.json`. `tabwrangler setup --chrome-id <id>` adds another ID. |
+| Chrome | `allowed_origins` lists `chrome-extension://<id>/`. The default ID comes from the `key` in `extension/manifest.json`. `tabwrangler setup --chrome-id <id>` adds another ID. |
 | Firefox | `allowed_extensions` lists `companion@tabwrangler.local` |
 
 The browser refuses to start the host for any other extension.

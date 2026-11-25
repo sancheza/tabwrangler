@@ -58,7 +58,7 @@ Confirm the installed version after upgrading:
 ```
 
 When an upgrade updates the companion WebExtension in `extension/`:
-- **Chrome / Edge / Brave:** Open `chrome://extensions` and click the **Reload** (circular arrow) icon on the TabWrangler Companion card.
+- **Chrome:** Open `chrome://extensions` and click the **Reload** (circular arrow) icon on the TabWrangler Companion card.
 - **Firefox:** Open `about:debugging#/runtime/this-firefox` and click **Reload** under TabWrangler Companion.
 - **Safari:** No action required; native automation updates with the CLI binary.
 
