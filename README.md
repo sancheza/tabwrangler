@@ -17,7 +17,8 @@ https://github.com/user-attachments/assets/cfb2d2dd-d0b0-43fb-9d08-118fc550cc27
 
 - **Unified Cross-Browser Viewport:** Inspect tabs across Chrome, Firefox, and Safari in a single virtualized table, with single-key switching to isolate individual browsers (`0`–`3`, `[` / `]`).
 - **Resource Footprint & Telemetry:** Measure tab CPU and RAM on demand, with visual indicators (`~`) distinguishing exact single-tab metrics from shared renderer processes.
-- **Fast Lifecycle Actions:**
+- **Fast Actions:**
+  - **Search (`/`):** Filter tabs as you type by title, URL, or domain. `Esc` clears the filter.
   - **Focus (`Enter` / `f`):** Bring any window and tab directly to the foreground.
   - **Hibernate (`h`):** Unload tabs from memory to reclaim RAM while keeping them open in the browser. A tab showing in its browser window cannot be unloaded, so TabWrangler first switches that window to another loaded tab.
   - **Close (`c`):** Close single or bulk-selected tabs, guarded by confirmation for batches greater than 3 tabs.
@@ -233,7 +234,7 @@ When loading the companion extension, browsers prompt for two permissions:
 
 Socket, token, log, manifests, registry keys, and the files TabWrangler reads: [Files and System Changes](docs/architecture.md#6-files-and-system-changes).
 
-The diagnostic log (`/tmp/tabwrangler-<uid>.log` on macOS/Linux, `%LOCALAPPDATA%\TabWrangler\tabwrangler.log` on Windows) contains no tab titles or URLs. Delete it at any time:
+The diagnostic log (`/tmp/tabwrangler-<uid>.log` on macOS/Linux, `%LOCALAPPDATA%\TabWrangler\tabwrangler.log` on Windows) contains no tab titles or URLs. It rotates at 5 MB, keeps one previous file (`<log>.1`) for up to 3 days, and uses at most about 10 MB. Delete it at any time:
 
 ```bash
 rm /tmp/tabwrangler-$(id -u).log

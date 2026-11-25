@@ -104,7 +104,7 @@ The browser refuses to start the host for any other extension.
 |:--- |:--- |:--- |:--- |
 | UI socket | `/tmp/tabwrangler-<uid>.sock` (macOS/Linux) | `0600` | None. Deleted at exit. |
 | Token | `/tmp/tabwrangler-<uid>.sock.token` (macOS/Linux), `%LOCALAPPDATA%\TabWrangler\bridge.token` (Windows) | `0600` | Random per-run token. Deleted at exit. |
-| Diagnostic log | `/tmp/tabwrangler-<uid>.log` (macOS/Linux), `%LOCALAPPDATA%\TabWrangler\tabwrangler.log` (Windows) | `0600` | Timestamps, process IDs, connection events, counts, durations, message sizes. No tab titles or URLs. Grows until you delete it. |
+| Diagnostic log | `/tmp/tabwrangler-<uid>.log` (macOS/Linux), `%LOCALAPPDATA%\TabWrangler\tabwrangler.log` (Windows) | `0600` | Timestamps, process IDs, connection events, counts, durations, message sizes. No tab titles or URLs. At 5 MB the log moves to `<log>.1`; a `.1` file older than 3 days is deleted. Maximum disk use: about 10 MB. |
 | Chrome manifest | macOS `~/Library/Application Support/Google/Chrome/NativeMessagingHosts/`, Linux `~/.config/google-chrome/NativeMessagingHosts/`, Windows `%LOCALAPPDATA%\TabWrangler\NativeMessagingHosts\` and Chrome's `User Data\NativeMessagingHosts\` | `0644` | Binary path and allowed extension IDs |
 | Firefox manifest | macOS `~/Library/Application Support/Mozilla/NativeMessagingHosts/`, Linux `~/.mozilla/native-messaging-hosts/`, Windows `%APPDATA%\Mozilla\NativeMessagingHosts\` | `0644` | Binary path and allowed extension ID |
 | Windows registry | `HKCU\Software\{Google\Chrome, Mozilla}\NativeMessagingHosts\com.tabwrangler.bridge` (32-bit and 64-bit views) | Per user | Path to the manifest |
@@ -141,5 +141,5 @@ To remove TabWrangler: delete the binary, delete the manifests and registry keys
 | Another extension or website | Cannot reach the socket. Only the registered extension IDs can start the bridge host. | Browser-enforced manifest allowlist |
 | Unpacked extension | Loaded in developer mode, so there is no store review or automatic update. Firefox removes temporary add-ons when it restarts. | Reload after upgrades. See [Upgrading](upgrading.md). |
 | Installer without checksum | `install.sh` trusts the HTTPS download | Use `tabwrangler --update`, or compare against `SHA256SUMS` yourself |
-| Log file growth | The log is never rotated | Delete it at any time. It contains no tab titles or URLs. |
+| Log file growth | The log rotates at 5 MB and keeps one previous file for up to 3 days | Delete either file at any time. They contain no tab titles or URLs. |
 | Safari scripting | Automation permission lets the terminal app control Safari | Revoke in System Settings → Privacy & Security → Automation |
