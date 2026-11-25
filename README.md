@@ -1,22 +1,22 @@
 # TabWrangler
 
-TabWrangler is a fast, keyboard-driven Terminal User Interface (TUI) for macOS, Windows, and Linux that provides centralized visibility, telemetry correlation, and lifecycle control over open tabs across Google Chrome, Mozilla Firefox, and Apple Safari.
+TabWrangler is an ultra fast Terminal User Interface (TUI) for macOS, Windows, and Linux that provides centralized visibility, search, telemetry, and control over open tabs across Google Chrome, Mozilla Firefox, and Apple Safari.
 
 [![TabWrangler demo: unified tab table, filtering, sorting, hibernate, close, and undo (simulated tab data)](assets/tabwrangler-demo.gif)](assets/tabwrangler-demo.mp4)
 
-*Demo with simulated tab data*
+*Demo*
 
 https://github.com/user-attachments/assets/cfb2d2dd-d0b0-43fb-9d08-118fc550cc27
 
 
-> **Quick Start:** To install a pre-built binary and launch TabWrangler in under two minutes without compiling from source, jump down to [3. Quick Start & Installation](#3-quick-start--installation).
+> **Quick Start:** To install a pre-built binary and launch TabWrangler without compiling from source, jump down to [3. Quick Start & Installation](#3-quick-start--installation).
 
 ---
 
 ## 1. Features
 
 - **Unified Cross-Browser Viewport:** Inspect tabs across Chrome, Firefox, and Safari in a single virtualized table, with single-key switching to isolate individual browsers (`0`–`3`, `[` / `]`).
-- **Resource Footprint & Honest Telemetry:** Measure tab CPU and RAM on demand, with visual indicators (`~`) distinguishing exact single-tab metrics from shared renderer processes.
+- **Resource Footprint & Telemetry:** Measure tab CPU and RAM on demand, with visual indicators (`~`) distinguishing exact single-tab metrics from shared renderer processes.
 - **Fast Lifecycle Actions:**
   - **Focus (`Enter` / `f`):** Bring any window and tab directly to the foreground.
   - **Hibernate (`h`):** Unload tabs from memory to reclaim RAM while keeping them open in the browser. A tab showing in its browser window cannot be unloaded, so TabWrangler first switches that window to another loaded tab.
