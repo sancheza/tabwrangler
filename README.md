@@ -6,6 +6,12 @@ TabWrangler is a fast, keyboard-driven Terminal User Interface (TUI) for macOS, 
 
 *Demo with simulated tab data. [Watch the narrated version (MP4, 84 s)](assets/tabwrangler-demo.mp4).*
 
+
+
+https://github.com/user-attachments/assets/cfb2d2dd-d0b0-43fb-9d08-118fc550cc27
+
+
+
 > **Quick Start:** To install a pre-built binary and launch TabWrangler in under two minutes without compiling from source, jump down to [3. Quick Start & Installation](#3-quick-start--installation).
 
 ---
