@@ -26,9 +26,6 @@ Expected output:
 [OK] Firefox native messaging manifest installed: C:\Users\<Username>\AppData\Roaming\Mozilla\NativeMessagingHosts\com.tabwrangler.bridge.json
 [INFO] Registering Native Messaging hosts in Windows Registry...
 [OK] Registered Google\Chrome across 32-bit & 64-bit Windows Registry views
-[OK] Registered Microsoft\Edge across 32-bit & 64-bit Windows Registry views
-[OK] Registered Chromium across 32-bit & 64-bit Windows Registry views
-[OK] Registered BraveSoftware\Brave-Browser across 32-bit & 64-bit Windows Registry views
 [OK] Registered Mozilla across 32-bit & 64-bit Windows Registry views
 [OK] Copied extension directory to Windows clipboard: C:\Users\<Username>\AppData\Local\TabWrangler\extension
 [OK] Setup complete. Load the extension from the 'extension/' directory into your browsers.
@@ -48,7 +45,7 @@ Objective: Install the unpacked Manifest V3 companion extension in your browser.
 5. Confirm that **TabWrangler Companion** appears in your extension list with no error badges.
 
 > [!NOTE]
-> Chrome may show the warning `'background.scripts' requires manifest version of 2 or lower`. It is harmless. The manifest lists both `service_worker` (used by Chrome and Edge) and `scripts` (used by Firefox) so one extension folder works in every browser. Each browser ignores the key it does not support.
+> Chrome may show the warning `'background.scripts' requires manifest version of 2 or lower`. It is harmless. The manifest lists both `service_worker` (used by Chrome) and `scripts` (used by Firefox) so one extension folder works in every browser. Each browser ignores the key it does not support.
 
 ### Mozilla Firefox:
 1. Open Firefox and navigate to `about:debugging#/runtime/this-firefox` in your address bar.

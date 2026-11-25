@@ -6,6 +6,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions follo
 
 ### Changed
 
+- Windows: `setup` registers the native messaging host for Chrome and Firefox only, and looks for a loaded extension in Chrome profiles only. Edge, Brave, and Chromium registrations are removed because they are not supported or tested.
 - Documentation: added [How TabWrangler Works](docs/architecture.md) and a short "How It Works" section in the README. Setup, upgrade, and CLI details moved to `docs/installation.md`, `docs/upgrading.md`, and `docs/cli.md`. README sections 6 to 9 are now 7 to 10.
 - README: the Features list says the UI refreshes every 5 seconds while open (it previously said there was no background polling).
 

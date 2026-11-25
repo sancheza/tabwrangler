@@ -207,15 +207,7 @@ func Run(binaryPath string, openBrowser bool, customChromeID string) error {
 
 		// Register in Windows Registry under HKCU across both 32-bit and 64-bit views
 		fmt.Printf("[INFO] Registering Native Messaging hosts in Windows Registry...\n")
-		browserKeys := []string{
-			`Google\Chrome`,
-			`Microsoft\Edge`,
-			`Chromium`,
-			`BraveSoftware\Brave-Browser`,
-		}
-		for _, bk := range browserKeys {
-			registerWindowsRegistry(bk, chromePath)
-		}
+		registerWindowsRegistry(`Google\Chrome`, chromePath)
 		registerWindowsRegistry(`Mozilla`, firefoxPath)
 
 		// Copy extension directory to Windows clipboard if clip is available
@@ -364,15 +356,13 @@ type installedExtension struct {
 	Path string // folder the browser loaded it from
 }
 
-// discoverInstalledExtensions scans Chromium user profile directories (Chrome, Edge, Brave)
+// discoverInstalledExtensions scans Chrome user profile directories
 // across all profiles (Default, Profile 1, custom profile names with spaces) for loaded
 // TabWrangler extensions, and reports each extension's ID and the folder it was loaded from.
 func discoverInstalledExtensions(localAppData string) []installedExtension {
 	var found []installedExtension
 	searchRoots := []string{
 		filepath.Join(localAppData, "Google", "Chrome", "User Data"),
-		filepath.Join(localAppData, "Microsoft", "Edge", "User Data"),
-		filepath.Join(localAppData, "BraveSoftware", "Brave-Browser", "User Data"),
 	}
 	for _, root := range searchRoots {
 		entries, err := os.ReadDir(root)
@@ -423,7 +413,7 @@ func nextSteps(installed []installedExtension, extDir string) string {
 	var b strings.Builder
 	if len(installed) == 0 || extDir == "" {
 		b.WriteString("Next step: Load the companion extension into your browser:\n\n")
-		b.WriteString("  • Chrome / Edge / Brave:\n")
+		b.WriteString("  • Chrome:\n")
 		b.WriteString("      1. Navigate to chrome://extensions\n")
 		b.WriteString("      2. Enable 'Developer mode' (top right)\n")
 		b.WriteString("      3. Click 'Load unpacked' and select the extension/ directory\n\n")
@@ -448,7 +438,7 @@ func nextSteps(installed []installedExtension, extDir string) string {
 	if len(elsewhere) == 0 {
 		b.WriteString("The companion extension is already loaded from " + extDir + ".\n")
 		b.WriteString("Reload it so the browser uses the new files:\n\n")
-		b.WriteString("  • Chrome / Edge / Brave: open chrome://extensions and click the Reload button on 'TabWrangler Companion'.\n")
+		b.WriteString("  • Chrome: open chrome://extensions and click the Reload button on 'TabWrangler Companion'.\n")
 		b.WriteString("  • Firefox: open about:debugging#/runtime/this-firefox and click 'Reload' on 'TabWrangler Companion'.\n\n")
 		b.WriteString("Press 'i' in TabWrangler to confirm the extension version.\n")
 		return b.String()

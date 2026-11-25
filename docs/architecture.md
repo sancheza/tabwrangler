@@ -7,7 +7,7 @@ This page explains what TabWrangler installs, what runs, what listens, what each
 | Component | Installed by | Where | Runs when | Listens on | Can do |
 |:--- |:--- |:--- |:--- |:--- |:--- |
 | **TabWrangler UI** (`tabwrangler`) | You (installer, download, or build) | A folder you choose, such as `~/.local/bin` | Only while you run it in a terminal | Unix socket (macOS/Linux) or `127.0.0.1:42823` (Windows) | Show tabs, send commands to browsers, read process CPU and RAM, run `osascript` for Safari |
-| **Bridge host** (`tabwrangler bridge`, the same binary) | The browser starts it. `tabwrangler setup` registers it. | The `tabwrangler` binary | While Chrome, Edge, Brave, or Firefox keep the extension connected, including when the UI is closed | Nothing. It connects out to the UI's socket. | Relay messages between the browser and the UI. It has no tab logic. |
+| **Bridge host** (`tabwrangler bridge`, the same binary) | The browser starts it. `tabwrangler setup` registers it. | The `tabwrangler` binary | While Chrome or Firefox keep the extension connected, including when the UI is closed | Nothing. It connects out to the UI's socket. | Relay messages between the browser and the UI. It has no tab logic. |
 | **Companion extension** | You (load unpacked or temporary add-on) | The `extension/` folder | While the browser runs. The browser controls the background worker's lifetime. | Nothing | List, focus, hibernate, close, reopen, and reload tabs through the `tabs` API |
 | **Native messaging manifest** | `tabwrangler setup` | Per-browser `NativeMessagingHosts` folders, plus registry keys on Windows | Never runs. It is a file the browser reads. | Nothing | Tell the browser which program to start and which extension IDs may start it |
 | **Safari automation** | Nothing to install | macOS built-in `osascript` | Each refresh or action, while the UI runs | Nothing | List, focus, close, and open Safari tabs |
@@ -107,7 +107,7 @@ The browser refuses to start the host for any other extension.
 | Diagnostic log | `/tmp/tabwrangler-<uid>.log` (macOS/Linux), `%LOCALAPPDATA%\TabWrangler\tabwrangler.log` (Windows) | `0600` | Timestamps, process IDs, connection events, counts, durations, message sizes. No tab titles or URLs. Grows until you delete it. |
 | Chrome manifest | macOS `~/Library/Application Support/Google/Chrome/NativeMessagingHosts/`, Linux `~/.config/google-chrome/NativeMessagingHosts/`, Windows `%LOCALAPPDATA%\TabWrangler\NativeMessagingHosts\` and Chrome's `User Data\NativeMessagingHosts\` | `0644` | Binary path and allowed extension IDs |
 | Firefox manifest | macOS `~/Library/Application Support/Mozilla/NativeMessagingHosts/`, Linux `~/.mozilla/native-messaging-hosts/`, Windows `%APPDATA%\Mozilla\NativeMessagingHosts\` | `0644` | Binary path and allowed extension ID |
-| Windows registry | `HKCU\Software\{Google\Chrome, Microsoft\Edge, Chromium, BraveSoftware\Brave-Browser, Mozilla}\NativeMessagingHosts\com.tabwrangler.bridge` (32-bit and 64-bit views) | Per user | Path to the manifest |
+| Windows registry | `HKCU\Software\{Google\Chrome, Mozilla}\NativeMessagingHosts\com.tabwrangler.bridge` (32-bit and 64-bit views) | Per user | Path to the manifest |
 | Windows install folder | `%LOCALAPPDATA%\TabWrangler\` | Per user | Copy of the program and the `extension/` folder |
 
 Files the program reads:
@@ -115,7 +115,7 @@ Files the program reads:
 | File | When | Purpose |
 |:--- |:--- |:--- |
 | Firefox `sessionstore-backups/recovery.jsonlz4` in your Firefox profiles | Only when the Firefox extension is not connected | Shows Firefox tabs without the extension. Read-only: no focus, hibernate, or close. |
-| Chrome, Edge, and Brave `Preferences` files (Windows) | During `tabwrangler setup` | Finds the ID of an already-loaded TabWrangler extension |
+| Chrome `Preferences` files (Windows) | During `tabwrangler setup` | Finds the ID of an already-loaded TabWrangler extension |
 | Browser process list and command lines (macOS, Windows) | Every refresh | Computes RAM and CPU per browser process. Only processes whose names match Chrome, Firefox, or Safari/WebKit are kept. |
 
 `setup` also copies the extension folder path to the clipboard (`pbcopy` on macOS, `clip` on Windows).
